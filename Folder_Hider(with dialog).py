@@ -1,4 +1,4 @@
-from stat import UF_HIDDEN
+# Programmed by: Mubashir Ahmed OR known as Mubashir78 on Github 
 import time
 import os
 from tkinter import Tk, Label, Button, CENTER, NE, RAISED, SUNKEN, GROOVE, SW, SE, LEFT, RIGHT, dialog
@@ -234,3 +234,4 @@ def main():
             continue
 
 intro()
+# Programmed by: Mubashir Ahmed OR known as Mubashir78 on Github
