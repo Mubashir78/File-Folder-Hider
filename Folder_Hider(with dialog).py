@@ -6,8 +6,6 @@ from tkinter import StringVar, Tk, filedialog ,Label, Button
 from datetime import date
 from tkinter.messagebox import askquestion, showerror, showinfo
 
-from matplotlib.pyplot import text
-
 today = date.today()
 d = today.strftime("%d-%b-%Y")
 
