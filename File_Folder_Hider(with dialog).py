@@ -1,8 +1,8 @@
 import time
 import os
-from os.path import getsize as file_size
+from os.path import exists, getsize as file_size
 import tkinter
-from tkinter import StringVar, Tk, filedialog ,Label, Button
+from tkinter import Tk, filedialog ,Label, Button, StringVar
 from datetime import date
 from tkinter.messagebox import askquestion, showerror, showinfo
 
@@ -57,7 +57,7 @@ def dialog_box_menu():
     button_uh.bind("<Enter>", lambda x: [button_uh.config(relief="raised")])
     button_uh.bind("<Leave>", lambda x: [button_uh.config(relief="groove")])
 
-    button_sh_log = Button(text="Show Log", font=("Calibri",16), command=lambda:[os.startfile("log.txt", show_cmd=1)])
+    button_sh_log = Button(text="Show Log", font=("Calibri",16), command=show_log)
     button_sh_log.config(width = 8, height = 1, relief="groove")
     button_sh_log.bind("<Enter>", lambda x: [button_sh_log.config(relief="raised")])
     button_sh_log.bind("<Leave>", lambda x: [button_sh_log.config(relief="groove")])
@@ -222,9 +222,9 @@ def txt_box_change(*_):
         button_uh.bind("<Enter>", lambda x: [button_uh.config(relief="raised")])
         button_uh.bind("<Leave>", lambda x: [button_uh.config(relief="groove")])
     else:
-        button_uh.config(state="disabled")
         button_uh.unbind("<Enter>")
         button_uh.unbind("<Leave>")
+        button_uh.config(state="disabled")
 
 
 def open_file(win, opr, command):
@@ -286,24 +286,39 @@ def logging(file_folder,fi_fo_path,opr):
             f.write(f"\n[Action: {opr};  Date & Time of Action: {d} {cur_t};  {file_folder} Path: {fi_fo_path}]\n")
 
 
+def create_log():
+    with open("log.txt", "w") as _:
+        pass
+
+
+def show_log():
+    if exists("log.txt"):
+        os.startfile("log.txt", show_cmd=1)
+    else:
+        return create_log(), show_log()
+
+
 def clear_log():
-    if file_size("log.txt") != 0:
-        conf = askquestion(title="Confirmation",
-                            message="This will clear all log in 'log.txt'. This action can not be undone.\n\nDo you wish to proceed?")
+    if exists("log.txt"):
+        if file_size("log.txt") != 0:
+            conf = askquestion(title="Confirmation",
+                                message="This will clear all log in 'log.txt'. This action can not be undone.\n\nDo you wish to proceed?")
 
-        if conf == "yes":
-            with open("log.txt", "w") as _:
-                pass
-            showinfo(title="Cleared All Log",
-                     message="All log has been cleared successfully.")
-            return win.focus_force()
+            if conf == "yes":
+                os.remove("log.txt")
+                showinfo(title="Cleared All Log",
+                        message="All log has been cleared successfully.")
+                return win.focus_force()
 
+            else:
+                return
+    
         else:
-            return
+            showerror(title="Log is Empty",
+                    message="The log is already cleared.")
     
     else:
-        showerror(title="Log is Empty",
-                 message="The log is already cleared.")
+        return create_log(), clear_log()
 
 
 def hide(file_folder, fi_fo_path):
@@ -365,5 +380,6 @@ def m_box(win):
 
 
 if __name__ == "__main__":
-    while True:
-        dialog_box_menu()
+    if exists("log.txt") == False:
+        create_log()
+    dialog_box_menu()
