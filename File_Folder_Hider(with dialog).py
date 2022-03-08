@@ -1,9 +1,11 @@
 import time
 import os
+from sys import exit
 from os.path import isfile, getsize as file_size
 import tkinter
 from tkinter import Tk, filedialog ,Label, Button, StringVar, Entry, simpledialog
 from datetime import date
+from tkinter import font
 from tkinter.messagebox import askquestion, showerror, showinfo, showwarning
 
 today = date.today()
@@ -14,12 +16,11 @@ cur_t = time.strftime("%H:%M:%S", t)
 
 WIDTH, HEIGHT = 500, 300
 
-log_file = "log.txt"
-pass_file = "passw.pass"
+log_file, pass_file = "log.txt", "passw.pass"
 fi_fo_path = txt_input = None
 
-counter = 0
-counter_2 = 0
+counter = counter_2 = 0
+
 
 class Error:
     file_path_er = "File/Folder not found. Please make sure to type the path correctly."
@@ -47,31 +48,31 @@ def dialog_box_menu():
     win.configure(bg="gray")
 
 
-    label = Label(text="============== Main Menu ==============", font=("Calibri", 19, "bold"), bg="gray", fg="black")
+    label = Label(text="============== Main Menu ==============", font=("Calibri", 19, "bold"), bg="gray")
     intro_txt = StringVar(win, "Welcome To File/Folder Hider!\nHere you can hide and unhide your files and/or folders.\n\nPlease press one of the buttons below\nto use the File/Folder Hider:")
-    label_2 = Label(textvariable=intro_txt, font=("Calibri", 14), width=50, bg="darkgray", fg="black")
+    label_2 = Label(textvariable=intro_txt, font=("Calibri", 14), width=50, bg="darkgray")
     
-    button_h = Button(text="Hide", font=("Calibri",17), bg="darkgray",fg="black", command=lambda:[win.destroy(), dialog_box_hide()])
+    button_h = Button(text="Hide", font=("Calibri",17), bg="darkgray", command=lambda:[win.destroy(), dialog_box_hide()])
     button_h.config(width = 7, height = 1, relief="groove")
     button_h.bind("<Enter>", lambda x: [button_h.config(relief="raised")])
     button_h.bind("<Leave>",lambda x: [button_h.config(relief="groove")])
 
-    button_uh = Button(text="Unhide", font=("Calibri",17), bg="darkgray",fg="black", command=lambda:[win.destroy(), dialog_box_unhide()])
+    button_uh = Button(text="Unhide", font=("Calibri",17), bg="darkgray", command=lambda:[win.destroy(), dialog_box_unhide()])
     button_uh.config(width = 7, height = 1, relief="groove")
     button_uh.bind("<Enter>", lambda x: [button_uh.config(relief="raised")])
     button_uh.bind("<Leave>", lambda x: [button_uh.config(relief="groove")])
 
-    button_sh_log = Button(text="Show Log", font=("Calibri",16), bg="darkgray",fg="black", command=show_log)
+    button_sh_log = Button(text="Show Log", font=("Calibri",16), bg="darkgray", command=show_log)
     button_sh_log.config(width = 8, height = 1, relief="groove")
     button_sh_log.bind("<Enter>", lambda x: [button_sh_log.config(relief="raised")])
     button_sh_log.bind("<Leave>", lambda x: [button_sh_log.config(relief="groove")])
 
-    button_del_log = Button(text="Clear Log", font=("Calibri",16), bg="darkgray",fg="black", command=clear_log)
+    button_del_log = Button(text="Clear Log", font=("Calibri",16), bg="darkgray", command=clear_log)
     button_del_log.config(width = 8, height = 1, relief="groove")
     button_del_log.bind("<Enter>", lambda x: [button_del_log.config(relief="raised")])
     button_del_log.bind("<Leave>", lambda x: [button_del_log.config(relief="groove")])
 
-    button_exit = Button(text="Exit", font=("Calibri",14), bg="darkgray",fg="black", command=lambda:[m_box(win)])
+    button_exit = Button(text="Exit", font=("Calibri",14), bg="darkgray", command=lambda:[m_box(win)])
     button_exit.config(width = 6, height = 1, relief="groove")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
@@ -110,26 +111,29 @@ def dialog_box_hide():
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_h, WIDTH, HEIGHT)
     win_h.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
     win_h.title("Dialog Box: Hide")
+    win_h.configure(bg="gray")
 
-    hide_txt = StringVar(win_h, "Click one of the buttons below\nto select what you want to hide:")
-    label = Label(textvariable=hide_txt, font=("Calibri",17))
+    label = Label(text="================= Hide =================", font=("Calibri", 19, "bold"), bg="gray")
+
+    hide_txt = StringVar(win_h, "Click one of the buttons below to select\nwhat you want to hide:")
+    label_2 = Label(textvariable=hide_txt, font=("Calibri",16), width=50, bg="darkgray")
     
-    button_fi = Button(text="Open a File", font=("Calibri",15), command=lambda:[open_file(win_h, "hide", dialog_box_hide)])
+    button_fi = Button(text="Hide a File", font=("Calibri",15), bg="darkgray", command=lambda:[open_file(win_h, "hide", dialog_box_hide)])
     button_fi.config(width = 11, height = 1, relief="groove")
     button_fi.bind("<Enter>", lambda x: [button_fi.config(relief="raised")])
     button_fi.bind("<Leave>", lambda x: [button_fi.config(relief="groove")])
 
-    button_fo = Button(text="Open a Folder",font=("Calibri",15), command=lambda:[open_folder(win_h, "hide", dialog_box_hide)])
+    button_fo = Button(text="Hide a Folder",font=("Calibri",15), bg="darkgray", command=lambda:[open_folder(win_h, "hide", dialog_box_hide)])
     button_fo.config(width = 11, height = 1, relief="groove")
     button_fo.bind("<Enter>", lambda x: [button_fo.config(relief="raised")])
     button_fo.bind("<Leave>", lambda x: [button_fo.config(relief="groove")])
 
-    button_exit = Button(text="Exit", font=("Calibri", 14), command=lambda:[m_box(win_h)])
+    button_exit = Button(text="Exit", font=("Calibri", 14), bg="darkgray", command=lambda:[m_box(win_h)])
     button_exit.config(width = 6, height = 1, relief="groove")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
 
-    button_exit_menu = Button(text="Exit To Main Menu", font=("Calibri",13), command=lambda: [win_h.destroy(), dialog_box_menu()])
+    button_exit_menu = Button(text="Exit To Main Menu", font=("Calibri",13), bg="darkgray", command=lambda: [win_h.destroy(), dialog_box_menu()])
     button_exit_menu.config(width = 15, height = 1, relief="groove")
     button_exit_menu.bind("<Enter>", lambda x: [button_exit_menu.config(relief="sunken")])
     button_exit_menu.bind("<Leave>", lambda x: [button_exit_menu.config(relief="groove")])
@@ -137,13 +141,15 @@ def dialog_box_hide():
     button_exit.grid(row = 0, column = 2, pady = 5, sticky='NE')
     button_exit_menu.grid(row = 1, column = 2, sticky='E')
     label.grid(row = 2, column = 0, columnspan = 3)
-    button_fi.grid(row = 3, column = 0, ipadx = 8,ipady = 5, padx = (5,5), pady = (0,5), sticky='SE')
-    button_fo.grid(row = 3, column = 2, ipadx = 8,ipady = 5, pady = (0,5), sticky='SW')
+    label_2.grid(row = 3, column = 0, columnspan = 3)
+    button_fi.grid(row = 4, column = 0, ipadx = 8,ipady = 5, padx = (5,5), pady = (0,5), sticky='SE')
+    button_fo.grid(row = 4, column = 2, ipadx = 8,ipady = 5, pady = (0,5), sticky='SW')
 
     win_h.grid_rowconfigure(0, weight=0)
     win_h.grid_rowconfigure(1, weight=1)
     win_h.grid_rowconfigure(2, weight=2)
-    win_h.grid_rowconfigure(3, weight=1)
+    win_h.grid_rowconfigure(3, weight=2)
+    win_h.grid_rowconfigure(4, weight=1)
 
     win_h.grid_columnconfigure(0, weight=1)
     win_h.grid_columnconfigure(1, weight=2)
@@ -151,6 +157,7 @@ def dialog_box_hide():
 
     win_h.focus_force()
     win_h.mainloop()
+
 
 def dialog_box_unhide():
     try:
@@ -161,44 +168,49 @@ def dialog_box_unhide():
         win_uh.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
         win_uh.resizable(width=False, height=False)
         win_uh.title("Dialog Box: Unhide")
+        win_uh.configure(bg="gray")
         
-        label = Label(text="Open the log file to check the full path to the\nfile/folder you want to unhide and copy/paste it below:", font=("Calibri", 16))
+        label = Label(text="================ Unhide ================", font=("Calibri", 19, "bold"), bg="gray")
+
+        label_2 = Label(text="Open the log file to check the full path to the file/folder\nyou want to unhide and copy/paste it below:", font=("Calibri", 14), width=50, bg="darkgray")
         
         text = StringVar(win_uh)
         txt_box = Entry(win_uh, textvariable=text, width = 70, justify="center")
         text.trace_add("write", txt_box_change)
         txt_box.bind("<Return>", get_txt_input)
         
-        button_op_log = Button(text="Open Log File", font=("Calibri", 16), command=lambda :[os.startfile(log_file, show_cmd=1)])
+        button_op_log = Button(text="Open Log File", font=("Calibri", 16), bg="darkgray", command=lambda :[os.startfile(log_file, show_cmd=1)])
         button_op_log.config(width = 12, height = 1, relief="groove")
         button_op_log.bind("<Enter>", lambda x: [button_op_log.config(relief="raised")])
         button_op_log.bind("<Leave>", lambda x: [button_op_log.config(relief="groove")])
 
-        button_uh = Button(text="Unhide", font=("Calibri", 16), command = get_txt_input)
+        button_uh = Button(text="Unhide", font=("Calibri", 16), bg="darkgray", command = get_txt_input)
         button_uh.config(width = 11, height = 1, relief="groove", state="disabled")
 
-        button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[m_box(win_uh)])
+        button_exit = Button(text="Exit", font=("Calibri", 17), bg="darkgray", command=lambda :[m_box(win_uh)])
         button_exit.config(width = 6, height = 1, relief="groove")
         button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
         button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
 
-        button_exit_menu = Button(text="Exit To Main Menu", font=("Calibri",12), command=lambda: [win_uh.destroy(), dialog_box_menu()])
+        button_exit_menu = Button(text="Exit To Main Menu", font=("Calibri",12), bg="darkgray", command=lambda: [win_uh.destroy(), dialog_box_menu()])
         button_exit_menu.config(width = 16, height = 1, relief="groove")
         button_exit_menu.bind("<Enter>", lambda x: [button_exit_menu.config(relief="sunken")])
         button_exit_menu.bind("<Leave>", lambda x: [button_exit_menu.config(relief="groove")])
 
         button_exit.grid(row = 0, column = 2, pady = 5, sticky='NE')
         button_exit_menu.grid(row = 1, column = 2, sticky='E')
-        label.grid(row = 2, column = 0, columnspan = 3, pady = (5,5))
-        txt_box.grid(row = 3, column = 0, columnspan = 3, pady = (7,7))
-        button_op_log.grid(row = 4, column = 0, padx=(0,5), pady = (0,5), sticky='S')
-        button_uh.grid(row = 4, column = 2, pady = (0,5), sticky='S')
+        label.grid(row = 2, column = 0, columnspan = 3, pady=(2,2))
+        label_2.grid(row = 3, column = 0, columnspan = 3, pady = (2,3))
+        txt_box.grid(row = 4, column = 0, columnspan = 3, pady = (7,7))
+        button_op_log.grid(row = 5, column = 0, padx=(0,5), pady = (0,5), sticky='S')
+        button_uh.grid(row = 5, column = 2, pady = (0,5), sticky='S')
 
         win_uh.grid_rowconfigure(0, weight=1)
         win_uh.grid_rowconfigure(1, weight=1)
         win_uh.grid_rowconfigure(2, weight=2)
         win_uh.grid_rowconfigure(3, weight=2)
-        win_uh.grid_rowconfigure(4, weight=1)
+        win_uh.grid_rowconfigure(4, weight=2)
+        win_uh.grid_rowconfigure(5, weight=1)
 
         win_uh.grid_columnconfigure(0, weight=1)
         win_uh.grid_columnconfigure(1, weight=2)
@@ -212,6 +224,64 @@ def dialog_box_unhide():
         showerror(title="Invalid Path",
                   message=Error.file_path_er)
         dialog_box_unhide()
+
+
+def create_pass_dialog_box():
+    global win_pass, password, entry_box_pass
+    win_pass = Tk()
+    win_pass.attributes("-topmost", True)
+    win_pass.resizable(width=False, height=False)
+    win_pass.eval('tk::PlaceWindow . center')
+    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, HEIGHT)
+    win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
+    win_pass.title("Create Password")
+    win_pass.configure(bg="gray")
+
+    label = Label(text="Enter a strong password:", font=("Calibri", 16, "bold"), bg="darkgray", fg="black")
+    label_pass = Label(text="Password:", font=("Calibri", 14, "bold"), bg="darkgray")
+    label_conf_pass = Label(text="Confirm Password:", font=("Calibri", 12, "bold"), bg="darkgray")
+
+    password = StringVar(win_pass)
+    conf_password = StringVar(win_pass)
+
+    entry_box_pass = Entry(win_pass, textvariable=password, width=55, justify="center")
+    entry_box_pass.bind("<Return>", lambda x: entry_box_conf_pass.focus_force())
+
+    entry_box_conf_pass = Entry(win_pass, textvariable=conf_password, width=55, justify="center")
+    entry_box_conf_pass.bind("<Return>", lambda x: [store_pass(password, conf_password)])
+
+    disabled = ("<Control-x>", "<Control-c>", "<Control-v>", "<Button-3>")
+    for i in disabled:
+        entry_box_conf_pass.bind(i, lambda x: "break")
+    
+    button = Button(text="Create", font=("Calibri", 16), command= lambda: [store_pass(password, conf_password)])
+    button.config(width = 10, height = 1, relief="groove", bg="darkgray")
+    button.bind("<Enter>", lambda x: [button.config(relief="raised")])
+    button.bind("<Leave>", lambda x: [button.config(relief="groove")])
+
+    button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[m_box(win_pass)])
+    button_exit.config(width = 6, height = 1, relief="groove", bg="darkgray")
+    button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
+    button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
+
+    label.grid(row = 0, column = 0, columnspan=2)
+    label_pass.grid(row = 1, column = 0, ipadx=30, ipady=5, padx=(5,5))
+    label_conf_pass.grid(row = 2, column = 0, ipadx=10, ipady=5, padx=(5,5))
+    entry_box_pass.grid(row = 1, column = 1, padx=(5,5))
+    entry_box_conf_pass.grid(row = 2, column = 1, padx=(5,5))
+    button.grid(row = 3, column = 0, columnspan=2)
+    button_exit.grid(row = 0, column = 1, padx = 5,  pady = 5, sticky="NE")
+
+    win_pass.grid_rowconfigure(0, weight=2)
+    win_pass.grid_rowconfigure(1, weight=1)
+    win_pass.grid_rowconfigure(2, weight=1)
+    win_pass.grid_rowconfigure(3, weight=1)
+    
+    win_pass.grid_columnconfigure(0, weight=1)
+    win_pass.grid_columnconfigure(0, weight=4)
+    
+    entry_box_pass.focus_force()
+    win_pass.mainloop()
 
 
 def get_txt_input(*_):
@@ -280,64 +350,6 @@ def open_folder(win, opr, command):
             command()
 
 
-def create_pass_dialog_box():
-    global win_pass, password, entry_box_pass
-    win_pass = Tk()
-    win_pass.attributes("-topmost", True)
-    win_pass.resizable(width=False, height=False)
-    win_pass.eval('tk::PlaceWindow . center')
-    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, HEIGHT)
-    win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
-    win_pass.title("Create Password")
-    win_pass.configure(bg="gray")
-
-    label = Label(text="Enter a strong password:", font=("Calibri", 16, "bold"), bg="darkgray", fg="black")
-    label_pass = Label(text="Password:", font=("Calibri", 14, "bold"), bg="darkgray")
-    label_conf_pass = Label(text="Confirm Password:", font=("Calibri", 12, "bold"), bg="darkgray")
-
-    password = StringVar(win_pass)
-    conf_password = StringVar(win_pass)
-
-    entry_box_pass = Entry(win_pass, textvariable=password, width=55, justify="center")
-    entry_box_pass.bind("<Return>", lambda x: entry_box_conf_pass.focus_force())
-
-    entry_box_conf_pass = Entry(win_pass, textvariable=conf_password, width=55, justify="center")
-    entry_box_conf_pass.bind("<Return>", lambda x: [store_pass(password, conf_password)])
-
-    disabled = ("<Control-x>", "<Control-c>", "<Control-v>", "<Button-3>")
-    for i in disabled:
-        entry_box_conf_pass.bind(i, lambda x: "break")
-    
-    button = Button(text="Create", font=("Calibri", 16), command= lambda: [store_pass(password, conf_password)])
-    button.config(width = 10, height = 1, relief="groove", bg="darkgray")
-    button.bind("<Enter>", lambda x: [button.config(relief="raised")])
-    button.bind("<Leave>", lambda x: [button.config(relief="groove")])
-
-    button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[m_box(win_pass)])
-    button_exit.config(width = 6, height = 1, relief="groove", bg="darkgray")
-    button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
-    button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
-
-    label.grid(row = 0, column = 0, columnspan=2)
-    label_pass.grid(row = 1, column = 0, ipadx=30, ipady=5, padx=(5,5))
-    label_conf_pass.grid(row = 2, column = 0, ipadx=10, ipady=5, padx=(5,5))
-    entry_box_pass.grid(row = 1, column = 1, padx=(5,5))
-    entry_box_conf_pass.grid(row = 2, column = 1, padx=(5,5))
-    button.grid(row = 3, column = 0, columnspan=2)
-    button_exit.grid(row = 0, column = 1, padx = 5,  pady = 5, sticky="NE")
-
-    win_pass.grid_rowconfigure(0, weight=2)
-    win_pass.grid_rowconfigure(1, weight=1)
-    win_pass.grid_rowconfigure(2, weight=1)
-    win_pass.grid_rowconfigure(3, weight=1)
-    
-    win_pass.grid_columnconfigure(0, weight=1)
-    win_pass.grid_columnconfigure(0, weight=4)
-    
-    entry_box_pass.focus_force()
-    win_pass.mainloop()
-
-    
 def create_pass():
     showwarning("First Time Run", "Looks like you are running File/Folder Hider for the first time.\n\nIn order to ensure that it is only you that has access to this script, please create a master password in the next dialog box.")
     return create_pass_dialog_box()
@@ -351,6 +363,8 @@ def store_pass(password, conf_pass):
         if password != "" and conf_pass != "":
             with open(pass_file, "w") as file:
                 file.write(password)
+            pass_path = os.path.abspath(pass_file)
+            os.system(f'attrib +h +s "{pass_path}"')
             counter_2 += 1
             showinfo("Success", "Master Password has been created successfully.\n\nClick OK to run File/Folder Hider.")
             win_pass.destroy()
@@ -394,8 +408,7 @@ def clear_log():
         if file_size(log_file) != 0:
             with open(log_file, "r") as file:
                 data = file.read()
-                no_of_hide_str = data.count("Hide")
-                no_of_unhide_str = data.count("Unhide")
+                no_of_hide_str, no_of_unhide_str = data.count("Hide"), data.count("Unhide")
             if no_of_hide_str <= no_of_unhide_str:
                 conf = askquestion(title="Confirmation",
                                     message="This will clear all log in 'log.txt'. This action can not be undone.\n\nDo you wish to proceed?")
@@ -496,5 +509,7 @@ if __name__ == "__main__":
                 if inp_pass == password:
                     showinfo("Password Matched", "Access Granted. Click OK to run File/Folder Hider.")
                     dialog_box_menu()
+                    break
                 else:
                     showerror("Incorrect Password", "The password is incorrect. Please try again.")
+exit()
