@@ -1,26 +1,23 @@
-import time
-import os
+from os import lstat
 from sys import exit
-from os.path import isfile, getsize as file_size
-import tkinter
-from tkinter import Tk, filedialog ,Label, Button, StringVar, Entry, simpledialog
-from datetime import date
-from tkinter import font
+import os, ctypes, sys, subprocess
+from datetime import datetime, date
+from win32api import GetFileAttributes
+from stat import FILE_ATTRIBUTE_HIDDEN as H
+from os.path import isfile, isdir, getsize as file_size
 from tkinter.messagebox import askquestion, showerror, showinfo, showwarning
+from tkinter import Tk, filedialog, Label, Button, StringVar, Entry, simpledialog, TclError
 
-today = date.today()
-d = today.strftime("%d-%b-%Y")
+today = date.today().strftime("%d-%b-%Y")
 
-t = time.localtime()
-cur_t = time.strftime("%H:%M:%S", t)
+cur_t = datetime.today().strftime("%I:%M %p")
 
 WIDTH, HEIGHT = 500, 300
 
 log_file, pass_file = "log.txt", "passw.pass"
-fi_fo_path = txt_input = None
+fi_fo_path = txt_input = conf_exit = None
 
 counter = counter_2 = 0
-
 
 class Error:
     file_path_er = "File/Folder not found. Please make sure to type the path correctly."
@@ -72,12 +69,18 @@ def dialog_box_menu():
     button_del_log.bind("<Enter>", lambda x: [button_del_log.config(relief="raised")])
     button_del_log.bind("<Leave>", lambda x: [button_del_log.config(relief="groove")])
 
-    button_exit = Button(text="Exit", font=("Calibri",14), bg="darkgray", command=lambda:[m_box(win)])
+    button_exit = Button(text="Exit", font=("Calibri",14), bg="darkgray", command=lambda:[exit_dialog_box(win, dialog_box_menu)])
     button_exit.config(width = 6, height = 1, relief="groove")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
 
-    button_exit.grid(row = 0, column = 3, pady = 5, sticky='NE')
+    button_change_mas_pass = Button(text="Change Master Password", font=("Calibri", 9), bg="darkgray", command=change_mas_pass)
+    button_change_mas_pass.config(width = 24, height = 1, relief="groove")
+    button_change_mas_pass.bind("<Enter>", lambda x: [button_change_mas_pass.config(relief="sunken")])
+    button_change_mas_pass.bind("<Leave>", lambda x: [button_change_mas_pass.config(relief="groove")])
+
+    button_change_mas_pass.grid(row = 0, column = 0, columnspan = 2, ipady = 3, padx=(2,0), pady = 5, sticky="NW")
+    button_exit.grid(row = 0, column = 3, padx = (0,5), pady = 5, sticky='NE')
     label.grid(row = 1, column = 0, columnspan = 4, pady = (8,5))
     label_2.grid(row = 2, column = 0, columnspan = 4, pady = (8,13))
     button_h.grid(row = 3, column = 0, ipadx = 6, ipady = 5, pady = (5,5), sticky='S')
@@ -100,6 +103,7 @@ def dialog_box_menu():
         counter = 1
         label_2.destroy()
 
+    win.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win, dialog_box_menu))
     win.mainloop()
 
 
@@ -115,20 +119,29 @@ def dialog_box_hide():
 
     label = Label(text="================= Hide =================", font=("Calibri", 19, "bold"), bg="gray")
 
-    hide_txt = StringVar(win_h, "Click one of the buttons below to select\nwhat you want to hide:")
-    label_2 = Label(textvariable=hide_txt, font=("Calibri",16), width=50, bg="darkgray")
-    
-    button_fi = Button(text="Hide a File", font=("Calibri",15), bg="darkgray", command=lambda:[open_file(win_h, "hide", dialog_box_hide)])
+    hide_txt = StringVar(win_h, "Enter the full path to the\nfile/folder you wish to hide,\nor press one of the two buttons below to\nselect them from the File Explorer:")
+    label_2 = Label(textvariable=hide_txt, font=("Calibri",10), width=50, bg="darkgray")
+
+    text = StringVar(win_h)
+    txt_box = Entry(win_h, textvariable=text, width = 70, justify="center")
+    txt_box.bind("<Return>", hide_fi_fo)
+
+    button_h = Button(text="Hide", font=("Calibri",12), bg="darkgray", command=lambda:[hide_fi_fo()])
+    button_h.config(width = 8, height = 1, relief="groove")
+    button_h.bind("<Enter>", lambda x: [button_h.config(relief="raised")])
+    button_h.bind("<Leave>", lambda x: [button_h.config(relief="groove")])
+
+    button_fi = Button(text="Hide a File", font=("Calibri",15), bg="darkgray", command=lambda:[open_file(dialog_box_hide)])
     button_fi.config(width = 11, height = 1, relief="groove")
     button_fi.bind("<Enter>", lambda x: [button_fi.config(relief="raised")])
     button_fi.bind("<Leave>", lambda x: [button_fi.config(relief="groove")])
 
-    button_fo = Button(text="Hide a Folder",font=("Calibri",15), bg="darkgray", command=lambda:[open_folder(win_h, "hide", dialog_box_hide)])
+    button_fo = Button(text="Hide a Folder",font=("Calibri",15), bg="darkgray", command=lambda:[open_folder(dialog_box_hide)])
     button_fo.config(width = 11, height = 1, relief="groove")
     button_fo.bind("<Enter>", lambda x: [button_fo.config(relief="raised")])
     button_fo.bind("<Leave>", lambda x: [button_fo.config(relief="groove")])
 
-    button_exit = Button(text="Exit", font=("Calibri", 14), bg="darkgray", command=lambda:[m_box(win_h)])
+    button_exit = Button(text="Exit", font=("Calibri", 14), bg="darkgray", command=lambda:[exit_dialog_box(win_h, dialog_box_hide)])
     button_exit.config(width = 6, height = 1, relief="groove")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
@@ -142,6 +155,8 @@ def dialog_box_hide():
     button_exit_menu.grid(row = 1, column = 2, sticky='E')
     label.grid(row = 2, column = 0, columnspan = 3)
     label_2.grid(row = 3, column = 0, columnspan = 3)
+    txt_box.grid(row = 4, column = 0, columnspan = 2)
+    button_h.grid(row = 4, column = 3)
     button_fi.grid(row = 4, column = 0, ipadx = 8,ipady = 5, padx = (5,5), pady = (0,5), sticky='SE')
     button_fo.grid(row = 4, column = 2, ipadx = 8,ipady = 5, pady = (0,5), sticky='SW')
 
@@ -156,6 +171,7 @@ def dialog_box_hide():
     win_h.grid_columnconfigure(2, weight=1)
 
     win_h.focus_force()
+    win_h.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_h, dialog_box_hide))
     win_h.mainloop()
 
 
@@ -176,8 +192,8 @@ def dialog_box_unhide():
         
         text = StringVar(win_uh)
         txt_box = Entry(win_uh, textvariable=text, width = 70, justify="center")
-        text.trace_add("write", txt_box_change)
-        txt_box.bind("<Return>", get_txt_input)
+        text.trace_add("write", lambda : txt_box_change())
+        txt_box.bind("<Return>", lambda : get_txt_input(button_uh))
         
         button_op_log = Button(text="Open Log File", font=("Calibri", 16), bg="darkgray", command=lambda :[os.startfile(log_file, show_cmd=1)])
         button_op_log.config(width = 12, height = 1, relief="groove")
@@ -187,7 +203,7 @@ def dialog_box_unhide():
         button_uh = Button(text="Unhide", font=("Calibri", 16), bg="darkgray", command = get_txt_input)
         button_uh.config(width = 11, height = 1, relief="groove", state="disabled")
 
-        button_exit = Button(text="Exit", font=("Calibri", 17), bg="darkgray", command=lambda :[m_box(win_uh)])
+        button_exit = Button(text="Exit", font=("Calibri", 17), bg="darkgray", command=lambda :[exit_dialog_box(win_uh, dialog_box_unhide)])
         button_exit.config(width = 6, height = 1, relief="groove")
         button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
         button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
@@ -217,6 +233,7 @@ def dialog_box_unhide():
         win_uh.grid_columnconfigure(2, weight=1)
 
         txt_box.focus_force()
+        win_uh.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_uh, dialog_box_unhide))
         win_uh.mainloop()
 
     except TypeError:
@@ -227,7 +244,7 @@ def dialog_box_unhide():
 
 
 def create_pass_dialog_box():
-    global win_pass, password, entry_box_pass
+    global win_pass, mas_pass, entry_box_pass, entry_box_conf_pass
     win_pass = Tk()
     win_pass.attributes("-topmost", True)
     win_pass.resizable(width=False, height=False)
@@ -241,25 +258,25 @@ def create_pass_dialog_box():
     label_pass = Label(text="Password:", font=("Calibri", 14, "bold"), bg="darkgray")
     label_conf_pass = Label(text="Confirm Password:", font=("Calibri", 12, "bold"), bg="darkgray")
 
-    password = StringVar(win_pass)
-    conf_password = StringVar(win_pass)
+    mas_pass = StringVar(win_pass)
+    conf_mas_pass = StringVar(win_pass)
 
-    entry_box_pass = Entry(win_pass, textvariable=password, width=55, justify="center")
+    entry_box_pass = Entry(win_pass, textvariable=mas_pass, width=55, justify="center")
     entry_box_pass.bind("<Return>", lambda x: entry_box_conf_pass.focus_force())
 
-    entry_box_conf_pass = Entry(win_pass, textvariable=conf_password, width=55, justify="center")
-    entry_box_conf_pass.bind("<Return>", lambda x: [store_pass(password, conf_password)])
+    entry_box_conf_pass = Entry(win_pass, textvariable=conf_mas_pass, width=55, justify="center")
+    entry_box_conf_pass.bind("<Return>", lambda x: [store_pass(mas_pass, conf_mas_pass)])
 
     disabled = ("<Control-x>", "<Control-c>", "<Control-v>", "<Button-3>")
     for i in disabled:
         entry_box_conf_pass.bind(i, lambda x: "break")
     
-    button = Button(text="Create", font=("Calibri", 16), command= lambda: [store_pass(password, conf_password)])
+    button = Button(text="Create", font=("Calibri", 16), command= lambda: [store_pass(mas_pass, conf_mas_pass)])
     button.config(width = 10, height = 1, relief="groove", bg="darkgray")
     button.bind("<Enter>", lambda x: [button.config(relief="raised")])
     button.bind("<Leave>", lambda x: [button.config(relief="groove")])
 
-    button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[m_box(win_pass)])
+    button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[exit_dialog_box(win_pass, create_pass_dialog_box)])
     button_exit.config(width = 6, height = 1, relief="groove", bg="darkgray")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
@@ -281,54 +298,121 @@ def create_pass_dialog_box():
     win_pass.grid_columnconfigure(0, weight=4)
     
     entry_box_pass.focus_force()
+    win_pass.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_pass, create_pass_dialog_box))
     win_pass.mainloop()
 
 
+def dialog_box_mas_pass():
+    global win_pass_2, password_2, txt_box_2, button_ok
+    win_pass_2 = Tk()
+    win_pass_2.attributes("-topmost", True)
+    win_pass_2.resizable(width=False, height=False)
+    win_pass_2.eval('tk::PlaceWindow . center')
+    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_2, 400, 150)
+    win_pass_2.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
+    win_pass_2.title("Change Password")
+    win_pass_2.configure(bg="gray")
+
+    label = Label(win_pass_2, text="Please enter the Master Password in order\nto access File/Folder Hider:", font=("Calibri", 14), width = 40, bg="darkgray")
+
+    password_2 = StringVar(win_pass_2)
+    txt_box_2 = Entry(win_pass_2, textvariable=password_2, width = 60, justify="center", show='*')
+    password_2.trace_add("write", txt_box_change)
+    txt_box_2.bind("<Return>", get_txt_input)
+
+    button_ok = Button(text="OK", font=("Calibri", 11), command=get_txt_input)
+    button_ok.config(width = 9, height = 1, relief = "groove", bg="darkgray")
+    button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
+    button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
+
+    button_cancel = Button(text="Cancel", font=("Calibri", 11), command=lambda : exit_dialog_box(win_pass_2, dialog_box_mas_pass))
+    button_cancel.config(width = 9, height = 1, relief = "groove", bg="darkgray")
+    button_cancel.bind("<Enter>", lambda x: [button_cancel.config(relief="raised")])
+    button_cancel.bind("<Leave>", lambda x: [button_cancel.config(relief="groove")])
+
+    label.grid(row = 0, column = 0, columnspan=2)
+    txt_box_2.grid(row = 1, column = 0, columnspan=2)
+    button_ok.grid(row = 2, column = 0, padx = 40, pady = (2,5), sticky="SE")
+    button_cancel.grid(row = 2, column = 1, padx = 40, pady = (2,5), sticky="SW")
+
+    win_pass_2.grid_rowconfigure(0, weight=1)
+    win_pass_2.grid_rowconfigure(1, weight=2)
+
+    win_pass_2.grid_columnconfigure(0, weight=1)
+    win_pass_2.grid_columnconfigure(1, weight=1)
+
+    txt_box_2.focus_force()
+    win_pass_2.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_pass_2, dialog_box_mas_pass))
+    win_pass_2.mainloop()
+
+
 def get_txt_input(*_):
-    global txt_input
-    txt_input = text.get()
-    unhide_fi_fo(txt_input)
+    global txt_input, password_2
+    try:
+        txt_input = text.get()
+        if exists(txt_input):
+            unhide_fi_fo(txt_input)
+    
+    except NameError:
+        password = password_2.get()
+        with open("passw.pass", "r") as file:
+            mas_pass = file.read()
+
+        if password == mas_pass:
+            showinfo(title="Password Matched",
+                     message="Access Granted. Click OK to run File/Folder Hider.")
+            return win_pass_2.destroy(), dialog_box_menu()
+
+        else:
+            showerror(title="Incorrect Password",
+                     message="The password is incorrect. Please try again.")
+            txt_box_2.focus_force()
 
 
 def txt_box_change(*_):
-    if text.get():
-        button_uh.config(state="normal")
-        button_uh.bind("<Enter>", lambda x: [button_uh.config(relief="raised")])
-        button_uh.bind("<Leave>", lambda x: [button_uh.config(relief="groove")])
-    else:
-        button_uh.unbind("<Enter>")
-        button_uh.unbind("<Leave>")
-        button_uh.config(state="disabled")
+    try:
+        if text.get():
+            button_uh.config(state="normal")
+            button_uh.bind("<Enter>", lambda x: [button_uh.config(relief="raised")])
+            button_uh.bind("<Leave>", lambda x: [button_uh.config(relief="groove")])
+
+        else:
+            button_uh.unbind("<Enter>")
+            button_uh.unbind("<Leave>")
+            button_uh.config(state="disabled")
+
+    except NameError:
+        if password_2.get():
+            button_ok.config(state="normal")
+            button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
+            button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
+            
+        else:
+            button_ok.unbind("<Enter>")
+            button_ok.unbind("<Leave>")
+            button_ok.config(state="disabled")
 
 
-def open_file(win, opr, command):
-    win.destroy()
+def open_file():
     global fi_fo_path
     fi_fo_path = filedialog.askopenfilename(initialdir=os.getcwd(),
                 title="Open File",
                 filetypes=(("All","*.*"),
-                (".exe","*.exe"),(".txt","*.txt"),(".png","*.png"),(".jpg","*.jpg"),(".doc","*.doc")))
+                (".exe","*.exe"),(".txt","*.txt"),(".png","*.png"),(".jpeg","*.jpg"),(".doc","*.doc"),(".pdf", "*.pdf")))
     
     if fi_fo_path == None or fi_fo_path == "":
         showerror(title="Dialog Box Exited",
                   message=Error.dialog_box_hide_exit_er)
         dialog_box_hide()
 
+    elif os.path.isfile(fi_fo_path): hide_fi_fo("File", fi_fo_path)
+
     else:
-        if os.path.isfile(fi_fo_path):
-            if opr == "hide":
-                hide("File", fi_fo_path)
-            elif opr == "unhide":
-                unhide("File", fi_fo_path)
-        
-        else:
-            showerror(title="Invalid Path",
-                      message=Error.file_path_er)
-            command()
+        showerror(title="Invalid Path",
+                  message=Error.file_path_er)
 
 
-def open_folder(win, opr, command):
-    win.destroy()
+def open_folder():
     global fi_fo_path
     fi_fo_path = filedialog.askdirectory()
 
@@ -338,33 +422,23 @@ def open_folder(win, opr, command):
         dialog_box_hide()
 
     else:
-        if os.path.isdir(fi_fo_path):
-            if opr == "hide":
-                hide("Folder", fi_fo_path)
-            elif opr == "unhide":
-                unhide("Folder", fi_fo_path)
-        
-        else:
-            showerror(title="Invalid Path",
-                      message=Error.file_path_er)
-            command()
+        hide_fi_fo(fi_fo_path)
 
 
 def create_pass():
     showwarning("First Time Run", "Looks like you are running File/Folder Hider for the first time.\n\nIn order to ensure that it is only you that has access to this script, please create a master password in the next dialog box.")
-    return create_pass_dialog_box()
+    create_pass_dialog_box()
 
 
 def store_pass(password, conf_pass):
     global counter_2
     password = password.get()
     conf_pass = conf_pass.get()
+
     if password == conf_pass:
         if password != "" and conf_pass != "":
             with open(pass_file, "w") as file:
                 file.write(password)
-            pass_path = os.path.abspath(pass_file)
-            os.system(f'attrib +h +s "{pass_path}"')
             counter_2 += 1
             showinfo("Success", "Master Password has been created successfully.\n\nClick OK to run File/Folder Hider.")
             win_pass.destroy()
@@ -376,17 +450,30 @@ def store_pass(password, conf_pass):
             
     
     else:
-        return showerror("Unmatching Passwords", "The passwords you have entered do not match.\nPlease try again.")
+        entry_box_pass.delete(0, "end")
+        entry_box_conf_pass.delete(0, "end")
+        showerror("Unmatching Passwords", "The passwords you have entered do not match.\nPlease try again.")
+        return entry_box_pass.focus_force()
+
+
+def change_mas_pass():
+    conf = askquestion("Confirmation", "You are about to change the current master password\nwhich is required to access File/Folder Hider.\n\nDo you wish to continue?")
+    
+    if conf == "yes":
+        win.destroy()
+        create_pass_dialog_box()
+
+    else: return
 
 
 def logging(file_folder,fi_fo_path,opr):
     if file_size(log_file) == 0:
         with open(log_file,"a") as f:
-            f.write(f"[Action: {opr};  Date & Time of Action: {d} {cur_t};  {file_folder} Path: {fi_fo_path}]\n")
+            f.write(f"Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}\n")
             
     else:
         with open(log_file,"a") as f:
-            f.write(f"\n[Action: {opr};  Date & Time of Action: {d} {cur_t};  {file_folder} Path: {fi_fo_path}]\n")
+            f.write(f"\nAction: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}\n")
 
 
 def create_log():
@@ -394,13 +481,13 @@ def create_log():
         pass
     log_path = os.path.abspath(log_file)
     os.system(f'attrib +h +s "{log_path}"')
+    subprocess.call('taskkill /F /IM exename.exe', shell=True)
 
 
 def show_log():
     if isfile(log_file):
         os.startfile(log_file, show_cmd=1)
-    else:
-        return create_log(), show_log()
+    else: return create_log(), show_log()
 
 
 def clear_log():
@@ -411,30 +498,59 @@ def clear_log():
                 no_of_hide_str, no_of_unhide_str = data.count("Hide"), data.count("Unhide")
             if no_of_hide_str <= no_of_unhide_str:
                 conf = askquestion(title="Confirmation",
-                                    message="This will clear all log in 'log.txt'. This action can not be undone.\n\nDo you wish to proceed?")
+                                   message="This will clear all log in 'log.txt'. This action can not be undone.\n\nDo you wish to continue?")
 
                 if conf == "yes":
-                    os.remove(log_file)
+                    create_log()
                     showinfo(title="Cleared All Log",
-                            message="All log has been cleared successfully.")
+                             message="All log has been cleared successfully.")
                     return win.focus_force()
 
                 else:
                     return
 
-            else:
-                showerror("Error", "Cannot clear log as there still are\nhidden files/folders present in your computer.\n\nPlease unhide them all before clearing log.")
+            else: showerror("Error", "Cannot clear log as there still are\nhidden files/folders present in your computer.\n\nPlease unhide them all before clearing log.")
     
-        else:
-            showerror(title="Log is Empty",
-                    message="The log is already cleared.")
+        else: showerror(title="Log is Empty",
+                        message="The log is already cleared.")
     
+    else: return create_log(), clear_log()
+
+
+def has_hidden_attribute(filename):
+    try:
+        st = lstat(filename)
+        flag = bool(st.st_file_attributes & H)
+
+    except AttributeError:
+        attributes = GetFileAttributes(filename)
+        flag = attributes & H
+
+    return flag
+
+def hide_fi_fo(path):
+    if isfile(path):
+        if has_hidden_attribute(path):
+            showerror(title="File is Hidden",
+                      message="The file you are trying to hide is already hidden.")
+        
+        else: hide("File", path)
+
+    elif isdir(path):
+        if has_hidden_attribute(path):
+            showerror(title="Folder is Hidden",
+                      message="The folder you are trying to hide is already hidden.")
+
+        else: hide("Folder", path)
+        
     else:
-        return create_log(), clear_log()
+        showerror(title="Invalid Path",
+                  message=Error.file_path_er)
 
 
 def hide(file_folder, fi_fo_path):
     os.system(f'attrib +h +s +r "{fi_fo_path}"')
+    subprocess.call('taskkill /F /IM exename.exe', shell=True)
     logging(f"{file_folder}", fi_fo_path,"Hide")
     del fi_fo_path
     showinfo(title=f"{file_folder} Hiding Complete",
@@ -442,35 +558,36 @@ def hide(file_folder, fi_fo_path):
     retry_code("hide", dialog_box_hide)
 
 
-def hide_fi_fo(path):
+def unhide_fi_fo(path):
     if os.path.isfile(path):
-        hide("File", path)
+        if has_hidden_attribute(path):
+            unhide("File", path)
+        else:
+            showerror(title="File is Not Hidden",
+                      message="The file you are trying to unhide is already visible.")
        
     elif os.path.isdir(path):
-        hide("Folder", path)
+        if has_hidden_attribute(path):
+            unhide("Folder", path)
+        else:
+            showerror(title="Folder is Not Hidden",
+                      message="The folder you are trying to unhide is already visible.")
+
+    else:
+        showerror(title="Invalid Path",
+                  message=Error.file_path_er)
+        txt_box.focus_force()
 
 
 def unhide(file_type, path):
     os.system(f'attrib -h -s -r "{path}"')
+    subprocess.call('taskkill /F /IM exename.exe', shell=True)
     logging(f"{file_type}", path,"Unhide")
     del path
     win_uh.destroy()
     showinfo(title=f"{file_type} Unhiding Complete",
              message=f"{file_type} has been made visible successfully.")
     retry_code("unhide", dialog_box_unhide)
-
-
-def unhide_fi_fo(path):
-    if os.path.isfile(path):
-        unhide("File", path)
-       
-    elif os.path.isdir(path):
-        unhide("Folder", path)
-
-    else:
-        showerror(title="Invalid Path",
-                  message=Error.file_path_er)
-        txt_box.focus_force()
 
 
 def retry_code(opr, command):
@@ -483,33 +600,37 @@ def retry_code(opr, command):
         return dialog_box_menu()
 
 
-def m_box(win):
-    conf = askquestion(title="Confirmation",
+def exit_dialog_box(win, dialog_box):
+    conf_exit = askquestion(title="Confirmation",
                        message="Are you sure you want to exit?")
-    if conf == "yes":
+
+    if conf_exit == "yes":
         global counter_2
         counter_2 += 1
-        win.destroy()
-        exit()
+        try: win.destroy(), exit()
+
+        except TclError:
+            exit()
+
+    if conf_exit == "no":
+        global counter
+        counter -= 1
+        try:  
+            win.deiconify()
+        except TclError:  
+            dialog_box()
 
 
 if __name__ == "__main__":
-    if isfile(log_file) == False:
+    if not isfile(log_file):
         create_log()
-    if isfile(pass_file) == False:
+    if not isfile(pass_file):
         create_pass()
         while counter_2 < 1:
-            showerror("No Master Password Created", "No master password has been created.\nYou must create one before running File/Folder Hider.")
+            showerror(title="No Master Password Created",
+                      message="No master password has been created.\nYou must create one before running File/Folder Hider.")
             create_pass_dialog_box()
     else:
-        while True:
-            inp_pass = simpledialog.askstring("Password Required", "Please enter the Master Password in order to access File/Folder Hider:")
-            with open(pass_file, "r") as file:
-                password = file.read()
-                if inp_pass == password:
-                    showinfo("Password Matched", "Access Granted. Click OK to run File/Folder Hider.")
-                    dialog_box_menu()
-                    break
-                else:
-                    showerror("Incorrect Password", "The password is incorrect. Please try again.")
-exit()
+        dialog_box_mas_pass()
+
+dialog_box_menu()
