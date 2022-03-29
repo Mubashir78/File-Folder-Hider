@@ -1,12 +1,13 @@
 # Programmed by: Mubashir Ahmed OR known as Mubashir78 on GitHub
 # https://www.github.com/Mubashir78
 
-import os, sys, base64
+import re, os, sys, base64, yagmail
 from datetime import date, datetime
 from os import lstat
 from os.path import getsize as file_size
 from os.path import isdir, isfile, join
 from pathlib import Path
+from random import randint
 from stat import FILE_ATTRIBUTE_HIDDEN as H
 from sys import exit
 from tkinter import Button, Entry, Label, StringVar, TclError, Tk, filedialog
@@ -26,11 +27,81 @@ log_file, pass_file = Path(__file__).with_name('log.txt'), Path(__file__).with_n
 
 fi_fo_path = txt_input = conf_exit = None
 
-counter_2 = 0  # Used to indicate whether the user has created master-password or simply skipped it. Upon skipping, error is shown
-
 class Error:
     file_path_er = "File/Folder not found. Please make sure to type the path correctly."
     dialog_box_hide_exit_er = "You exited the dialog box. Please try again."
+    invalid_email_format_er = "The email you have entered is of invalid format. Please try again."
+
+
+class Email:
+    def __init__(self):
+        self.recovery_code = randint(100000,999999)
+        self.sender = "filefolderhider@gmail.com"
+
+        with open(pass_file, "rb") as file:
+            text = file.readlines()
+
+        user_email = base64.b64decode(text[2]).decode("utf-8")
+        self.receiver = user_email
+        self.subject = "Recovery code for changing Master Password"
+        self.body = f"""\
+        Greetings from File Folder Hider! Following is the recovery code asked for changing your Master Password:
+
+        {self.recovery_code}
+
+        If it wasn't you who requested the recovery code, please open File Folder Hider and change your Master Password ASAP.
+
+        Thank you,
+        Mubashir78.
+        https://www.github.com/Mubashir78"""
+
+    
+
+    def passw_recovery_email(self):
+        conf = askquestion(title="Master Password Recovery",
+                           message=f"An email will be sent to {self.receiver} containing the recovery code for changing the Master Password.\n\nDo you wish to continue?")
+        
+        if conf == "yes":
+            sys_show(pass_file)
+            with open(pass_file, "rb") as file:
+                text = file.readlines()
+            sys_hide(pass_file)
+
+            enc_password = text[1]
+            gmail_password = base64.b64decode(enc_password).decode("utf-8")
+
+            gmail = yagmail.SMTP({self.sender : "File Folder Hider"}, gmail_password)
+            gmail.send(to=self.receiver,
+                       subject=self.subject,
+                       contents=self.body)
+
+            showinfo(title="Recovery Email Sent",
+                     message="Recovery email has been sent successfully.\nPlease check for it in your inbox and enter\nthe recovery code in the next dialog box.")
+
+            return win_pass_2.destroy(), dialog_box_recover_mas_pass()
+
+        else: del self
+
+
+def recov_code():
+    global recovery_code
+    try:
+        with open(pass_file, "rb") as file:
+            text = file.readlines()
+
+        user_email = base64.b64decode(text[2]).decode("utf-8")
+
+    except IndexError:
+        user_email = None
+
+    if user_email == None:
+        return showerror(title="No Email Found",
+                         message="You have not provided your email address.\nTo access the Master Password Recovery feature, please enter your email address while creating/changing the Master Password."), txt_box_2.focus_force()
+
+    else:
+        email = Email()
+        recovery_code = email.recovery_code
+        email.passw_recovery_email()
 
 
 def center(win, win_width, win_height):
@@ -103,7 +174,6 @@ def dialog_box_menu():
     button_del_log.grid(row = 3, column = 3, ipadx = 6, ipady = 7, pady = (5,5), sticky='S')
 
     #--GRID CONFIGURE SECTION--
-    win.grid_rowconfigure(0, weight=0)
     win.grid_rowconfigure(1, weight=2)
     win.grid_rowconfigure(2, weight=2)
     win.grid_rowconfigure(3, weight=1)
@@ -260,44 +330,49 @@ def dialog_box_unhide():
 
 
 def create_pass_dialog_box():
-    global win_pass, mas_pass, entry_box_pass, entry_box_conf_pass
+    global win_pass, mas_pass, entry_box_pass, entry_box_conf_pass, entry_box_email
 
     #--WIN_PASS SECTION--
     win_pass = Tk()
     win_pass.attributes("-topmost", True)
     win_pass.resizable(width=False, height=False)
     win_pass.eval('tk::PlaceWindow . center')
-    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, HEIGHT)
-    win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
     win_pass.title("Create Password")
     win_pass.configure(bg="gray")
 
     #--LABELS SECTION--
-    label = Label(text="Enter a strong password:", font=("Calibri", 16, "bold"), width=50, bg="darkgray", fg="black")
-    label_pass = Label(text="Password:", font=("Calibri", 14, "bold"), bg="darkgray")
+    label = Label(text="Enter a strong password (Email is optional):", font=("Calibri", 16, "bold"), width=50, bg="darkgray", fg="black")
+    label_pass = Label(text="Password:", font=("Calibri", 15, "bold"), bg="darkgray")
     label_conf_pass = Label(text="Confirm Password:", font=("Calibri", 12, "bold"), bg="darkgray")
+    label_email = Label(text="Email (For Password Recovery):", font=("Calibri", 9, "bold"), bg="darkgray")
 
+    #--STRINGVAR SECTION--
     mas_pass = StringVar(win_pass)
     conf_mas_pass = StringVar(win_pass)
+    email = StringVar(win_pass)
 
     #--ENTRY BOXES SECTION--
     entry_box_pass = Entry(win_pass, textvariable=mas_pass, width=55, justify="center")
+    mas_pass.trace_add("write", lambda x,y,z: txt_box_change(button=button, text=mas_pass))
     entry_box_pass.bind("<Return>", lambda x: entry_box_conf_pass.focus_force())
 
     entry_box_conf_pass = Entry(win_pass, textvariable=conf_mas_pass, width=55, justify="center")
-    entry_box_conf_pass.bind("<Return>", lambda x: [store_pass(mas_pass, conf_mas_pass)])
+    conf_mas_pass.trace_add("write", lambda x,y,z: txt_box_change(button=button, text=conf_mas_pass))
+    entry_box_conf_pass.bind("<Return>", lambda x: entry_box_email.focus_force())
+
+    entry_box_email = Entry(win_pass, textvariable=email, width=55, justify="center")
+    email.trace_add("write", lambda x,y,z: txt_box_change(button=button, text=email))
+    entry_box_email.bind("<Return>", lambda x: [store_pass_email(mas_pass, conf_mas_pass, email)])
 
     disabled = ("<Control-x>", "<Control-c>", "<Control-v>", "<Button-3>")
     for i in disabled:
         entry_box_conf_pass.bind(i, lambda x: "break") # Binds multiple key presses to function 'break', so that copy-pasting is disabled while password confirmation entry box is active
     
     #--BUTTONS SECTION--
-    button = Button(text="Create", font=("Calibri", 16), command= lambda: [store_pass(mas_pass, conf_mas_pass)])
-    button.config(width = 10, height = 1, relief="groove", bg="darkgray")
-    button.bind("<Enter>", lambda x: [button.config(relief="raised")])
-    button.bind("<Leave>", lambda x: [button.config(relief="groove")])
+    button = Button(text="OK", font=("Calibri", 16), command= lambda: [store_pass_email(mas_pass, conf_mas_pass, email)])
+    button.config(width = 10, height = 1, relief="groove", bg="darkgray", state="disabled")
 
-    button_exit = Button(text="Exit", font=("Calibri", 17), command=lambda :[exit_dialog_box(win_pass, create_pass_dialog_box)])
+    button_exit = Button(text="Exit", font=("Calibri", 14), command=lambda :[exit_dialog_box(win_pass, create_pass_dialog_box)])
     button_exit.config(width = 6, height = 1, relief="groove", bg="darkgray")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
@@ -309,25 +384,33 @@ def create_pass_dialog_box():
 
     #--WIDGETS' PLACEMENT SECTION--
     if isfile(pass_file):
+        WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 350)
+        win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
         button_exit.config(font=("Calibri", 14), width = 5)
         label.grid(row = 2, column = 0, columnspan=2)
         label_pass.grid(row = 3, column = 0, ipadx=30, ipady=5, padx = 5)
         label_conf_pass.grid(row = 4, column = 0, ipadx=10, ipady=5, padx = 5)
+        label_email.grid(row = 5, column = 0, ipadx=5, ipady=5, padx = 5)
         entry_box_pass.grid(row = 3, column = 1, padx = 5)
         entry_box_conf_pass.grid(row = 4, column = 1, padx = 5)
-        button.grid(row = 5, column = 0, pady = (2,5), columnspan=2)
+        entry_box_email.grid(row = 5, column = 1, padx = 5)
+        button.grid(row = 6, column = 0, pady = (2,5), columnspan=2)
         button_exit.grid(row = 0, column = 1, padx = 5, pady = (5,18), sticky="NE")
         button_exit_menu.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="SE")
 
     else: 
-        button_exit_menu.grid_forget()
-        button_exit.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="NE")
+        WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 300)
+        win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
         label.grid(row = 1, column = 0, ipady=3, columnspan=2, sticky="N")
         label_pass.grid(row = 2, column = 0, ipadx=30, ipady=5, padx = 5)
         label_conf_pass.grid(row = 3, column = 0, ipadx=10, ipady=5, padx = 5)
+        label_email.grid(row = 4, column = 0, ipadx=5, ipady=5, padx = 5)
         entry_box_pass.grid(row = 2, column = 1, padx = 5)
         entry_box_conf_pass.grid(row = 3, column = 1, padx = 5)
-        button.grid(row = 4, column = 0, columnspan=2)
+        entry_box_email.grid(row = 4, column = 1, padx = 5)
+        button.grid(row = 5, column = 0, columnspan=2)
+        button_exit.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="NE")
+        button_exit_menu.grid_forget()
 
 
     #--GRID CONFIGURE SECTION--
@@ -336,6 +419,8 @@ def create_pass_dialog_box():
     win_pass.grid_rowconfigure(2, weight=1)
     win_pass.grid_rowconfigure(3, weight=1)
     win_pass.grid_rowconfigure(4, weight=1)
+    win_pass.grid_rowconfigure(5, weight=1)
+    win_pass.grid_rowconfigure(6, weight=1)
     
     win_pass.grid_columnconfigure(0, weight=1)
     win_pass.grid_columnconfigure(1, weight=4)
@@ -353,16 +438,17 @@ def dialog_box_mas_pass():
     win_pass_2.attributes("-topmost", True)
     win_pass_2.resizable(width=False, height=False)
     win_pass_2.eval('tk::PlaceWindow . center')
-    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_2, 400, 150)
+    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_2, 400, 175)
     win_pass_2.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
-    win_pass_2.title("Change Password")
+    win_pass_2.title("Master Password Required")
     win_pass_2.configure(bg="gray")
 
     #--LABELS SECTION--
     label = Label(win_pass_2, text="Please enter the Master Password in order\nto access File/Folder Hider:", font=("Calibri", 14), width = 40, bg="darkgray")
 
-    #--ENTRY BOX SECTION--
+    #--STRINGVAR SECTION--
     password_2 = StringVar(win_pass_2)
+    #--ENTRY BOX SECTION--
     txt_box_2 = Entry(win_pass_2, textvariable=password_2, width = 60, justify="center", show='*')
     password_2.trace_add("write", lambda x,y,z: txt_box_change(button=button_ok, text=password_2))
     txt_box_2.bind("<Return>", lambda x: get_txt_input(text=password_2, opr='pass'))
@@ -370,23 +456,28 @@ def dialog_box_mas_pass():
     #--BUTTONS SECTION--
     button_ok = Button(text="OK", font=("Calibri", 11), command=lambda : get_txt_input(text=password_2, opr='pass'))
     button_ok.config(width = 9, height = 1, relief = "groove", bg="darkgray", state="disabled")
-    button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
-    button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
 
     button_cancel = Button(text="Cancel", font=("Calibri", 11), command=lambda : exit_dialog_box(win_pass_2, dialog_box_mas_pass))
     button_cancel.config(width = 9, height = 1, relief = "groove", bg="darkgray")
     button_cancel.bind("<Enter>", lambda x: [button_cancel.config(relief="raised")])
     button_cancel.bind("<Leave>", lambda x: [button_cancel.config(relief="groove")])
 
+    button_recov_passw = Button(text="Forgot Password?", font=("Calibri", 9), command=recov_code)
+    button_recov_passw.config(width = 17, height = 1, relief = "groove", bg="darkgray")
+    button_recov_passw.bind("<Enter>", lambda x: [button_recov_passw.config(relief="sunken")])
+    button_recov_passw.bind("<Leave>", lambda x: [button_recov_passw.config(relief="groove")])
+
     #--WIDGETS' PLACEMENT SECTION--
-    label.grid(row = 0, column = 0, columnspan=2)
-    txt_box_2.grid(row = 1, column = 0, columnspan=2)
-    button_ok.grid(row = 2, column = 0, padx = 40, pady = (2,5), sticky="SE")
-    button_cancel.grid(row = 2, column = 1, padx = 40, pady = (2,5), sticky="SW")
+    button_recov_passw.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="NE")
+    label.grid(row = 1, column = 0, columnspan=2)
+    txt_box_2.grid(row = 2, column = 0, columnspan=2)
+    button_ok.grid(row = 3, column = 0, padx = 40, pady = (2,5), sticky="SE")
+    button_cancel.grid(row = 3, column = 1, padx = 40, pady = (2,5), sticky="SW")
 
     #--GRID CONFIGURE SECTION--
     win_pass_2.grid_rowconfigure(0, weight=1)
-    win_pass_2.grid_rowconfigure(1, weight=2)
+    win_pass_2.grid_rowconfigure(1, weight=1)
+    win_pass_2.grid_rowconfigure(2, weight=2)
 
     win_pass_2.grid_columnconfigure(0, weight=1)
     win_pass_2.grid_columnconfigure(1, weight=1)
@@ -396,10 +487,69 @@ def dialog_box_mas_pass():
     win_pass_2.mainloop()
 
 
+def dialog_box_recover_mas_pass():
+    global win_pass_3, password_3, txt_box_3
+
+    #--WIN_PASS_3 SECTION--
+    win_pass_3 = Tk()
+    win_pass_3.attributes("-topmost", True)
+    win_pass_3.resizable(width=False, height=False)
+    win_pass_3.eval('tk::PlaceWindow . center')
+    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_3, 400, 230)
+    win_pass_3.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
+    win_pass_3.title("Master Password Recovery")
+    win_pass_3.configure(bg="gray")
+
+    #--LABELS SECTION--
+    label = Label(win_pass_3, text="Enter the Recovery Code:", font=("Calibri", 15, "bold"), width = 40, bg="darkgray", fg="black")
+
+    #--STRINGVAR SECTION--
+    password_3 = StringVar(win_pass_3)
+
+    #--ENTRY BOX SECTION--
+    txt_box_3 = Entry(win_pass_3, textvariable=password_3, width = 60, justify="center")
+    password_3.trace_add("write", lambda x,y,z: txt_box_change(button=button_ok, text=password_3))
+    txt_box_3.bind("<Return>", lambda x: get_txt_input(text=password_3, opr='recover_pass'))
+
+    #--BUTTONS SECTION--
+    button_ok = Button(text="OK", font=("Calibri", 13), bg="darkgray", command=lambda : get_txt_input(text=password_3, opr='recover_pass'))
+    button_ok.config(width = 9, height = 1, relief="groove", state="disabled")
+    button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
+    button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
+
+    button_exit = Button(text="Exit", font=("Calibri", 12), bg="darkgray", command=lambda :[exit_dialog_box(win_pass_3, create_pass_dialog_box)])
+    button_exit.config(width = 5, height = 1, relief="groove")
+    button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
+    button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
+
+    button_exit_mas_pass = Button(text="Go Back", font=("Calibri",11), bg="darkgray", command=lambda: [win_pass_3.destroy(), dialog_box_mas_pass()])
+    button_exit_mas_pass.config(width = 8, height = 1, relief="groove")
+    button_exit_mas_pass.bind("<Enter>", lambda x: [button_exit_mas_pass.config(relief="sunken")])
+    button_exit_mas_pass.bind("<Leave>", lambda x: [button_exit_mas_pass.config(relief="groove")])
+
+    #--WIDGETS' PLACEMENT SECTION--
+    button_exit.grid(row = 0, column = 1, padx = 5, pady = 5, sticky='NE')
+    button_exit_mas_pass.grid(row = 1, column = 1, padx = 5, pady = (0,6), sticky='E')
+    label.grid(row = 2, column = 0, columnspan = 2)
+    txt_box_3.grid(row = 3, column = 0, columnspan = 2)
+    button_ok.grid(row = 4, column = 0, columnspan = 2)
+
+    win_pass_3.rowconfigure(2, weight=2)
+    win_pass_3.rowconfigure(3, weight=1)
+    win_pass_3.rowconfigure(4, weight=1)
+
+    win_pass_3.columnconfigure(0, weight=1)
+    win_pass_3.columnconfigure(1, weight=1)
+
+    txt_box_3.focus_force()
+    win_pass_3.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_pass_3, dialog_box_recover_mas_pass))
+    win_pass_3.mainloop()
+
+
 def get_txt_input(text, opr, *args):
     # Takes a StringVar and operation to get the data stored in it and 
     # return the function according to the operation, else show error
-    global fi_fo_path
+    global fi_fo_path, recovery_code
     if opr == 'hide':
         fi_fo_path = text.get()
         hide_fi_fo(fi_fo_path)
@@ -411,7 +561,7 @@ def get_txt_input(text, opr, *args):
     elif opr == 'pass':
         password = text.get()
         with open(pass_file, "rb") as file:
-            mas_pass = file.read()
+            mas_pass = file.readline()
         # Decrypts the encrypted password stored in passw.pass
         dec_password = base64.b64decode(mas_pass).decode("utf-8")
 
@@ -425,6 +575,19 @@ def get_txt_input(text, opr, *args):
             showerror(title="Incorrect Password",
                     message="The password is incorrect. Please try again.")
             txt_box_2.focus_force()
+        
+    elif opr == "recover_pass":
+        input_recover_pass = password_3.get()
+        if input_recover_pass == str(recovery_code):
+            showinfo(title="Recovery Code Matched",
+                     message="Authentication successful.\nYou can now proceed to change your Master Password.")
+            return win_pass_3.destroy(), create_pass_dialog_box()
+        
+        else:
+            txt_box_3.delete(0, "end")
+            showerror(title="Incorrect Recovery Code",
+                      message="The recovery code you have entered is incorrect. Please try again.")
+            txt_box_3.focus_force()
 
 
 def txt_box_change(button, text):
@@ -470,47 +633,283 @@ def open_folder():
         hide_fi_fo(fi_fo_path)
 
 
+def check_email_format(regex, email):
+    if(re.fullmatch(regex, email)):
+        return True
+ 
+    else:
+        return False
+
+
 def create_pass():
     showwarning("First Time Run", "Looks like you are running File/Folder Hider for the first time.\n\nIn order to ensure that it is only you that has access to this script, please create a master password in the next dialog box.")
     create_pass_dialog_box()
 
 
-def store_pass(password, conf_pass):
-    global counter_2
-    password = password.get()
-    conf_pass = conf_pass.get()
+def create_passw():
+    with open(pass_file, "w") as _:
+        pass
+    sys_hide(pass_file)
 
-    if password == conf_pass:
-        if password != "" and conf_pass != "":
-            # Encrypts the password input by the user
-            enc_password = base64.b64encode(password.encode("utf-8"))
+# Following 3 Functions are for deleting their respective Entry text fields
 
-            if isfile(pass_file):
-                sys_show(pass_file)
+def delete_entry_pass():
+    entry_box_pass.delete(0, "end")
 
-            with open(pass_file, "wb") as file:
-                file.write(enc_password)
-            sys_hide(pass_file)
+def delete_entry_conf_pass():
+    entry_box_conf_pass.delete(0, "end")
 
-            counter_2 += 1
-            showinfo("Success", "Master Password has been created successfully.\n\nClick OK to run File/Folder Hider.")
-            win_pass.destroy()
-            return dialog_box_menu()
+def delete_entry_email():
+    entry_box_email.delete(0, "end")
 
-        else:
-            showerror("Invalid Password Format", "Master password cannot be empty.\nPlease try again.")
-            return entry_box_pass.focus_force()
-            
-    
+# Following 2 Functions are for encoding (NOT encrypting) Master
+# Password and User Email respectively
+
+def encode_pass(password):
+    enc_pass = base64.b64encode(password.encode("utf-8"))
+    return enc_pass
+
+def encode_email(email):
+    enc_email = base64.b64encode(email.encode("utf-8"))
+    return enc_email
+
+# Following 3 Functions are for writing Master Password,
+# User Email, and both at the same time respectively
+
+def write_password(password):
+    enc_pass = encode_pass(password)
+    sys_show(pass_file)
+    with open(pass_file, "wb") as file:
+        file.write(enc_pass)
+    sys_hide(pass_file)
+
+
+def write_email(email):
+    enc_email = encode_email(email)
+    enc_list = [b'UHl0aG9uU2NyaXB0Nzg=\n', enc_email]
+    sys_show(pass_file)
+    with open(pass_file, "wb") as file:
+        for item in enc_list:
+            file.write(item)
+    sys_hide(pass_file)
+
+
+def write_password_and_email(password, email):
+    enc_pass = encode_pass(password)
+    enc_email = encode_email(email)
+    enc_list = [enc_pass, b'\nUHl0aG9uU2NyaXB0Nzg=\n', enc_email]
+    sys_show(pass_file)
+    with open(pass_file, "wb") as file:
+        for item in enc_list:
+            file.write(item)
+    sys_hide(pass_file)
+
+# Following function is for deleting User Email 
+# when entered "del" command by the user
+
+def delete_email(lines):
+    sys_show(pass_file)
+    with open(pass_file, "wb") as file:
+        for i, line in enumerate(lines):
+            if i not in [1,2]:
+                file.write(line)
+        file.truncate(file.tell() - 1)
+    sys_hide(pass_file)
+
+
+# Following 3 Functions are for checking multiple conditions upon input for
+# Master Password only, User Email only, and both at the same time respectively
+# It reacts accordingly to almost all possibilites of user input at various times
+# e.g when starting the script for the first time, or when email was not entered in
+# the first place, or when Master Password has already been created
+
+
+def check_password_only(password, orig_password, orig_email):
+    if not (orig_password or orig_email):
+            write_password(password)
+            logging("Create Master Password")
+            showinfo("Success", "Master Password has been created successfully.\n\nPress OK to proceed.")
+            return win_pass.destroy(), dialog_box_menu()
+
+    elif (orig_password and orig_email) and orig_password != password:
+        write_password_and_email(password, orig_email)
+        logging("Change Master Password")
+        showinfo("Success", "Master Password has been changed successfully.\n\nPress OK to proceed.")
+        return win_pass.destroy(), dialog_box_menu()
+
+    elif orig_password and orig_password != password:
+        write_password(password)
+        logging("Change Master Password")
+        showinfo("Success", "Master Password has been changed successfully.\n\nPress OK to proceed.")
+        return win_pass.destroy(), dialog_box_menu()
+
     else:
-        entry_box_pass.delete(0, "end")
-        entry_box_conf_pass.delete(0, "end")
-        showerror("Unmatching Passwords", "The passwords you have entered do not match.\nPlease try again.")
+        delete_entry_pass(), delete_entry_conf_pass()
+        showerror("Master Password Already Exists", "The Master Password you have entered is already in use. Please enter a new Master Password.")
         return entry_box_pass.focus_force()
 
 
+def check_email_only(orig_password, email, orig_email):
+    if orig_password:
+        if email == "del":
+            if orig_email:
+                delete_email(lines)
+                logging("Delete Email")
+                showinfo("Success", "Email has been deleted successfully.")
+                return win_pass.destroy(), dialog_box_menu()
+
+            else:
+                delete_entry_email()
+                showerror("No Email Found", "No email is found to be deleted.")
+                return entry_box_email.focus_force()
+
+        elif not orig_email:
+            if check_email_format(regex, email):
+                write_password_and_email(orig_password, email)
+                logging(f"Add Email '{email}'")
+                showinfo("Success", "Email has been added successfully.\n\nPress OK to proceed.")
+                return win_pass.destroy(), dialog_box_menu()
+            
+            else:
+                delete_entry_email()
+                showerror("Invalid Email Format", Error.invalid_email_format_er)
+                return entry_box_email.focus_force()
+            
+        elif orig_email == email:
+            delete_entry_email()
+            showerror("Email Already Exists", "The email you have entered already exists. Please enter another email address.")
+            return entry_box_email.focus_force()
+
+        else:
+            if check_email_format(regex, email):
+                write_email(email)
+                logging(f"Change Email to '{email}'")
+                showinfo("Success", "Email has been changed successfully.\n\nPress OK to proceed.")
+                return win_pass.destroy(), dialog_box_menu()
+            
+            else:
+                delete_entry_email()
+                showerror("Invalid Email Format", Error.invalid_email_format_er)
+                return entry_box_email.focus_force()
+
+
+    else:
+        if check_email_format(regex, email):
+            showerror("Master Password Required", "Master Password cannot be empty. Please create a Master Password.")
+            return entry_box_pass.focus_force()
+
+        else:
+            delete_entry_email()
+            showerror("Invalid Email Format", Error.invalid_email_format_er)
+            return entry_box_email.focus_force()
+
+
+def check_both_passw_and_email(password, orig_password, email, orig_email):
+    if not orig_password:
+        if check_email_format(regex, email):
+            write_password_and_email(password, email)
+            logging(f"Create Master Password & Add Email '{email}'")
+            showinfo("Success", "Master Password has been created and your email has been added successfully.\n\nPress OK to proceed.")
+            return win_pass.destroy(), dialog_box_menu()
+        
+        else:
+            delete_entry_email()
+            showerror("Invalid Email Format", Error.invalid_email_format_er)
+            return entry_box_email.focus_force()
+
+    elif email == "del":
+        if orig_email:
+            if not password:
+                delete_email(lines)
+                logging("Delete Email")
+                showinfo("Success", "Email has been deleted successfully.")
+                return win_pass.destroy(), dialog_box_menu()
+
+            else:
+                write_password(password)
+                logging("Change Master Password & Delete Email")
+                showinfo("Success", "Master Password has been changed and email has been deleted successfully.")
+                return win_pass.destroy(), dialog_box_menu()
+
+        else:
+            delete_entry_email()
+            showerror("No Email Found", "No email is found to be deleted.")
+            return entry_box_email.focus_force()
+
+    elif password != orig_password:
+        if check_email_format(regex, email):
+            if email != orig_email:
+                write_password_and_email(password, email)
+                logging(f"Change Master Password & Add Email '{email}'")
+                showinfo("Success", "Master Password has been changed and your email has been added successfully.\n\nPress OK to proceed.")
+                return win_pass.destroy(), dialog_box_menu()
+
+            else:
+                delete_entry_email()
+                showerror("Email Already Exists", "The email you have entered already exists. Please enter another email address.")
+                return entry_box_email.focus_force()
+
+        else:
+            delete_entry_email()
+            showerror("Invalid Email Format", Error.invalid_email_format_er)
+            return entry_box_email.focus_force()
+
+    else:
+        delete_entry_pass(), delete_entry_conf_pass()
+        showerror("Master Password Already Exists", "The Master Password you have entered is already in use. Please enter a new Master Password.")
+        return entry_box_pass.focus_force()
+
+
+# This function uses the above related functions, basically the main function
+# for storing Master Password and User Email
+
+
+def store_pass_email(password, conf_pass, email):
+    global regex, lines
+    password = password.get()
+    conf_pass = conf_pass.get()
+    user_email = email.get()
+
+    checking_password = None
+
+    try:
+        with open(pass_file, "rb") as file:
+            lines = file.readlines()
+        checking_password = base64.b64decode(lines[0]).decode("utf-8")
+        checking_email = base64.b64decode(lines[2]).decode("utf-8")
+    
+    except (FileNotFoundError, IndexError):
+        checking_email = None
+
+    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+    if password != conf_pass and not user_email:
+        delete_entry_pass(), delete_entry_conf_pass()
+        showerror("Non-Matching Passwords", "The passwords you have entered do not match. Please try again.")
+        return entry_box_pass.focus_force()
+
+    elif password != conf_pass and not check_email_format(regex, user_email) and user_email != "del":
+        delete_entry_pass(), delete_entry_conf_pass(), delete_entry_email()
+        showerror("Non-Matching Passwords & Invalid Email Format", "The passwords you have entered do not match & the email entered is of invalid format. Please try again.")
+        return entry_box_pass.focus_force()
+
+    elif password != conf_pass:
+        delete_entry_pass(), delete_entry_conf_pass()
+        showerror("Non-Matching Passwords", "The passwords you have entered do not match. Please try again.")
+        return entry_box_pass.focus_force()
+    
+    elif password and user_email:
+        check_both_passw_and_email(password, checking_password, user_email, checking_email)
+
+    elif not password:
+        check_email_only(checking_password, user_email, checking_email)
+
+    elif not user_email:
+        check_password_only(password, checking_password, checking_email)
+
+    
 def change_mas_pass():
-    conf = askquestion("Confirmation", "You are about to change the current master password\nwhich is required to access File/Folder Hider.\n\nDo you wish to continue?")
+    conf = askquestion("Confirmation", "You are about to change the current Master Password which is required to access File/Folder Hider. Email address can also be entered to access Master Password Recovery feature.\n\nDo you wish to continue?")
     
     if conf == "yes":
         win.destroy()
@@ -532,17 +931,27 @@ def sys_show_r_o(path):
     os.system(f'attrib -h -s -r "{join(sys.path[0], path)}"')
 
 
-def logging(file_folder,fi_fo_path,opr):
+def logging(opr, file_folder=None, fi_fo_path=None):
     # Logs hiding and unhiding records to log.txt for later use as history
     # and for copy-pasting file/folder path to unhide since they are not
     # visible in File Explorer
-    if file_size(log_file) == 0:
-        with open(log_file, "a") as f:
-            f.write(f"----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
-            
+    if fi_fo_path:
+        if file_size(log_file) == 0:
+            with open(log_file, "a") as f:
+                f.write(f"----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
+                
+        else:
+            with open(log_file, "a") as f:
+                f.write(f"\n----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
+
     else:
-        with open(log_file, "a") as f:
-            f.write(f"\n----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
+        if file_size(log_file) == 0:
+            with open(log_file, "a") as f:
+                f.write(f"----Action: {opr};  Date & Time of Action: {today} {cur_t}----\n")
+                
+        else:
+            with open(log_file, "a") as f:
+                f.write(f"\n----Action: {opr};  Date & Time of Action: {today} {cur_t}----\n")
 
 
 def create_log():
@@ -629,7 +1038,7 @@ def hide_fi_fo(path):
 
 def hide(file_folder, fi_fo_path):
     sys_hide_r_o(fi_fo_path)
-    logging(f"{file_folder}", fi_fo_path, "Hide")
+    logging("Hide" ,f"{file_folder}", fi_fo_path)
     del fi_fo_path
     showinfo(title=f"{file_folder} Hiding Complete",
              message=f"{file_folder} has been hidden successfully.")
@@ -661,7 +1070,7 @@ def unhide_fi_fo(path):
 
 def unhide(file_type, path):
     sys_show_r_o(path)
-    logging(f"{file_type}", path, "Unhide")
+    logging("Unhide", f"{file_type}", path)
     del path
     showinfo(title=f"{file_type} Unhiding Complete",
              message=f"{file_type} has been made visible successfully.")
@@ -672,10 +1081,6 @@ def exit_dialog_box(win, dialog_box):
                        message="Are you sure you want to exit?")
 
     if conf_exit == "yes":
-        global counter_2
-        # Counter_2 is used here inorder to override the Master Password creation when
-        # the user wants to exit out of the script
-        counter_2 += 1
         try: win.destroy(), exit()
 
         except TclError:
@@ -692,14 +1097,9 @@ def exit_dialog_box(win, dialog_box):
 if __name__ == "__main__":
     if not isfile(log_file):
         create_log()
-    if not isfile(pass_file):
+    if not isfile(pass_file) or file_size(pass_file) == 0:
         create_pass()
-        while counter_2 < 1:
-            # This is the error that shows up when no Master Password is created
-            # indicating that the user has possibly skipped the process
-            showerror(title="No Master Password Created",
-                      message="No master password has been created.\nYou must create one before running File/Folder Hider.")
-            create_pass_dialog_box()
+    
     else: dialog_box_mas_pass()
 
 dialog_box_menu()
