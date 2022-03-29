@@ -9,7 +9,6 @@ from os.path import isdir, isfile, join
 from pathlib import Path
 from random import randint
 from stat import FILE_ATTRIBUTE_HIDDEN as H
-from sys import exit
 from tkinter import Button, Entry, Label, StringVar, TclError, Tk, filedialog
 from tkinter.messagebox import askquestion, showerror, showinfo, showwarning
 from win32api import GetFileAttributes
@@ -78,13 +77,12 @@ class Email:
             showinfo(title="Recovery Email Sent",
                      message="Recovery email has been sent successfully.\nPlease check for it in your inbox and enter\nthe recovery code in the next dialog box.")
 
-            return win_pass_2.destroy(), dialog_box_recover_mas_pass()
+            return win_pass_2.destroy(), dialog_box_recover_mas_pass(self.recovery_code)
 
         else: del self
 
 
 def recov_code():
-    global recovery_code
     try:
         with open(pass_file, "rb") as file:
             text = file.readlines()
@@ -94,14 +92,13 @@ def recov_code():
     except IndexError:
         user_email = None
 
-    if user_email == None:
+    if not user_email:
         return showerror(title="No Email Found",
                          message="You have not provided your email address.\nTo access the Master Password Recovery feature, please enter your email address while creating/changing the Master Password."), txt_box_2.focus_force()
 
     else:
         email = Email()
-        recovery_code = email.recovery_code
-        email.passw_recovery_email()
+        return email.passw_recovery_email()
 
 
 def center(win, win_width, win_height):
@@ -487,7 +484,7 @@ def dialog_box_mas_pass():
     win_pass_2.mainloop()
 
 
-def dialog_box_recover_mas_pass():
+def dialog_box_recover_mas_pass(recovery_code):
     global win_pass_3, password_3, txt_box_3
 
     #--WIN_PASS_3 SECTION--
@@ -512,7 +509,7 @@ def dialog_box_recover_mas_pass():
     txt_box_3.bind("<Return>", lambda x: get_txt_input(text=password_3, opr='recover_pass'))
 
     #--BUTTONS SECTION--
-    button_ok = Button(text="OK", font=("Calibri", 13), bg="darkgray", command=lambda : get_txt_input(text=password_3, opr='recover_pass'))
+    button_ok = Button(text="OK", font=("Calibri", 13), bg="darkgray", command=lambda : get_txt_input(text=password_3, opr='recover_pass', recovery_code = recovery_code))
     button_ok.config(width = 9, height = 1, relief="groove", state="disabled")
     button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
     button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
@@ -546,17 +543,17 @@ def dialog_box_recover_mas_pass():
     win_pass_3.mainloop()
 
 
-def get_txt_input(text, opr, *args):
+def get_txt_input(text, opr, recovery_code=None, *args):
     # Takes a StringVar and operation to get the data stored in it and 
     # return the function according to the operation, else show error
-    global fi_fo_path, recovery_code
+    global fi_fo_path
     if opr == 'hide':
         fi_fo_path = text.get()
-        hide_fi_fo(fi_fo_path)
+        return hide_fi_fo(fi_fo_path)
 
     elif opr == 'unhide':
         fi_fo_path = text.get()
-        unhide_fi_fo(fi_fo_path)
+        return unhide_fi_fo(fi_fo_path)
 
     elif opr == 'pass':
         password = text.get()
@@ -574,7 +571,7 @@ def get_txt_input(text, opr, *args):
             txt_box_2.delete(0, "end")
             showerror(title="Incorrect Password",
                     message="The password is incorrect. Please try again.")
-            txt_box_2.focus_force()
+            return txt_box_2.focus_force()
         
     elif opr == "recover_pass":
         input_recover_pass = password_3.get()
@@ -587,7 +584,7 @@ def get_txt_input(text, opr, *args):
             txt_box_3.delete(0, "end")
             showerror(title="Incorrect Recovery Code",
                       message="The recovery code you have entered is incorrect. Please try again.")
-            txt_box_3.focus_force()
+            return txt_box_3.focus_force()
 
 
 def txt_box_change(button, text):
@@ -612,12 +609,12 @@ def open_file():
                 filetypes=(("All","*.*"),
                 (".exe","*.exe"),(".txt","*.txt"),(".png","*.png"),(".jpeg","*.jpg"),(".doc","*.doc"),(".pdf", "*.pdf")))
     
-    if fi_fo_path == None or fi_fo_path == "":
-        showerror(title="Dialog Box Exited",
+    if not fi_fo_path:
+        return showerror(title="Dialog Box Exited",
                   message=Error.dialog_box_hide_exit_er)
 
     else: 
-        hide_fi_fo(fi_fo_path)
+        return hide_fi_fo(fi_fo_path)
 
 
 def open_folder():
@@ -625,12 +622,12 @@ def open_folder():
     global fi_fo_path
     fi_fo_path = filedialog.askdirectory()
 
-    if fi_fo_path == None or fi_fo_path == "":
-        showerror(title="Dialog Box Exited",
+    if not fi_fo_path:
+        return showerror(title="Dialog Box Exited",
                   message=Error.dialog_box_hide_exit_er)
 
     else:
-        hide_fi_fo(fi_fo_path)
+        return hide_fi_fo(fi_fo_path)
 
 
 def check_email_format(regex, email):
@@ -643,24 +640,24 @@ def check_email_format(regex, email):
 
 def create_pass():
     showwarning("First Time Run", "Looks like you are running File/Folder Hider for the first time.\n\nIn order to ensure that it is only you that has access to this script, please create a master password in the next dialog box.")
-    create_pass_dialog_box()
+    return create_pass_dialog_box()
 
 
 def create_passw():
     with open(pass_file, "w") as _:
         pass
-    sys_hide(pass_file)
+    return sys_hide(pass_file)
 
 # Following 3 Functions are for deleting their respective Entry text fields
 
 def delete_entry_pass():
-    entry_box_pass.delete(0, "end")
+    return entry_box_pass.delete(0, "end")
 
 def delete_entry_conf_pass():
-    entry_box_conf_pass.delete(0, "end")
+    return entry_box_conf_pass.delete(0, "end")
 
 def delete_entry_email():
-    entry_box_email.delete(0, "end")
+    return entry_box_email.delete(0, "end")
 
 # Following 2 Functions are for encoding (NOT encrypting) Master
 # Password and User Email respectively
@@ -681,7 +678,7 @@ def write_password(password):
     sys_show(pass_file)
     with open(pass_file, "wb") as file:
         file.write(enc_pass)
-    sys_hide(pass_file)
+    return sys_hide(pass_file)
 
 
 def write_email(email):
@@ -691,7 +688,7 @@ def write_email(email):
     with open(pass_file, "wb") as file:
         for item in enc_list:
             file.write(item)
-    sys_hide(pass_file)
+    return sys_hide(pass_file)
 
 
 def write_password_and_email(password, email):
@@ -702,7 +699,7 @@ def write_password_and_email(password, email):
     with open(pass_file, "wb") as file:
         for item in enc_list:
             file.write(item)
-    sys_hide(pass_file)
+    return sys_hide(pass_file)
 
 # Following function is for deleting User Email 
 # when entered "del" command by the user
@@ -714,7 +711,7 @@ def delete_email(lines):
             if i not in [1,2]:
                 file.write(line)
         file.truncate(file.tell() - 1)
-    sys_hide(pass_file)
+    return sys_hide(pass_file)
 
 
 # Following 3 Functions are for checking multiple conditions upon input for
@@ -911,24 +908,22 @@ def store_pass_email(password, conf_pass, email):
 def change_mas_pass():
     conf = askquestion("Confirmation", "You are about to change the current Master Password which is required to access File/Folder Hider. Email address can also be entered to access Master Password Recovery feature.\n\nDo you wish to continue?")
     
-    if conf == "yes":
-        win.destroy()
-        create_pass_dialog_box()
+    if conf == "yes": return win.destroy(), create_pass_dialog_box()
 
     else: return
 
 # The commands used to hide and unhide files and folders
 def sys_hide(path):
-    os.system(f'attrib +h +s "{path}"')
+    return os.system(f'attrib +h +s "{path}"')
 
 def sys_hide_r_o(path):
-    os.system(f'attrib +h +s +r "{join(sys.path[0], path)}"')
+    return os.system(f'attrib +h +s +r "{join(sys.path[0], path)}"')
 
 def sys_show(path):
-    os.system(f'attrib -h -s "{path}"')
+    return os.system(f'attrib -h -s "{path}"')
 
 def sys_show_r_o(path):
-    os.system(f'attrib -h -s -r "{join(sys.path[0], path)}"')
+    return os.system(f'attrib -h -s -r "{join(sys.path[0], path)}"')
 
 
 def logging(opr, file_folder=None, fi_fo_path=None):
@@ -939,25 +934,29 @@ def logging(opr, file_folder=None, fi_fo_path=None):
         if file_size(log_file) == 0:
             with open(log_file, "a") as f:
                 f.write(f"----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
-                
+            return
+
         else:
             with open(log_file, "a") as f:
                 f.write(f"\n----Action: {opr};  Date & Time of Action: {today} {cur_t};  {file_folder} Path: {fi_fo_path}----\n")
+            return
 
     else:
         if file_size(log_file) == 0:
             with open(log_file, "a") as f:
                 f.write(f"----Action: {opr};  Date & Time of Action: {today} {cur_t}----\n")
+            return
                 
         else:
             with open(log_file, "a") as f:
                 f.write(f"\n----Action: {opr};  Date & Time of Action: {today} {cur_t}----\n")
+            return
 
 
 def create_log():
     with open(log_file, "w") as _:
         pass
-    sys_hide(log_file)
+    return sys_hide(log_file)
 
 
 def show_log():
@@ -991,9 +990,9 @@ def clear_log():
                 else:
                     return
 
-            else: showerror("Error", "Cannot clear log as there still are\nhidden files/folders present in your computer.\n\nPlease unhide them all before clearing log.")
+            else: return showerror("Error", "Cannot clear log as there still are\nhidden files/folders present in your computer.\n\nPlease unhide them all before clearing log.")
     
-        else: showerror(title="Log is Empty",
+        else: return showerror(title="Log is Empty",
                         message="The log is already cleared.")
     
     else: return create_log(), clear_log()
@@ -1019,7 +1018,7 @@ def hide_fi_fo(path):
             showerror(title="File is Hidden",
                       message="The file you are trying to hide is already hidden.")
         
-        else: hide("File", path)
+        else: return hide("File", path)
 
     elif isdir(path):
         txt_box_h.delete(0, "end")
@@ -1027,20 +1026,20 @@ def hide_fi_fo(path):
             showerror(title="Folder is Hidden",
                       message="The folder you are trying to hide is already hidden.")
 
-        else: hide("Folder", path)
+        else: return hide("Folder", path)
         
     else:
         txt_box_h.delete(0, "end")
         showerror(title="Invalid Path",
                   message=Error.file_path_er)
-        txt_box_h.focus_force()
+        return txt_box_h.focus_force()
 
 
 def hide(file_folder, fi_fo_path):
     sys_hide_r_o(fi_fo_path)
     logging("Hide" ,f"{file_folder}", fi_fo_path)
     del fi_fo_path
-    showinfo(title=f"{file_folder} Hiding Complete",
+    return showinfo(title=f"{file_folder} Hiding Complete",
              message=f"{file_folder} has been hidden successfully.")
 
 
@@ -1048,31 +1047,33 @@ def unhide_fi_fo(path):
     if os.path.isfile(path):
         txt_box_uh.delete(0, "end")
         if has_hidden_attribute(path):
-            unhide("File", path)
+            return unhide("File", path)
+
         else:
-            showerror(title="File is Not Hidden",
+            return showerror(title="File is Not Hidden",
                       message="The file you are trying to unhide is already visible.")
        
     elif os.path.isdir(path):
         txt_box_uh.delete(0, "end")
         if has_hidden_attribute(path):
-            unhide("Folder", path)
+            return unhide("Folder", path)
+
         else:
-            showerror(title="Folder is Not Hidden",
+            return showerror(title="Folder is Not Hidden",
                       message="The folder you are trying to unhide is already visible.")
 
     else:
         txt_box_uh.delete(0, "end")
         showerror(title="Invalid Path",
                   message=Error.file_path_er)
-        txt_box_uh.focus_force()
+        return txt_box_uh.focus_force()
 
 
 def unhide(file_type, path):
     sys_show_r_o(path)
     logging("Unhide", f"{file_type}", path)
     del path
-    showinfo(title=f"{file_type} Unhiding Complete",
+    return showinfo(title=f"{file_type} Unhiding Complete",
              message=f"{file_type} has been made visible successfully.")
 
 
@@ -1081,17 +1082,17 @@ def exit_dialog_box(win, dialog_box):
                        message="Are you sure you want to exit?")
 
     if conf_exit == "yes":
-        try: win.destroy(), exit()
+        try: return win.destroy(), sys.exit()
 
         except TclError:
-            exit()
+            return
 
-    if conf_exit == "no":
+    else:
         try:
             # If the Tk window passed in as argument is open, redraw/update it, else call its function
-            win.deiconify()
+            return win.deiconify()
         except TclError:  
-            dialog_box()
+            return dialog_box()
 
 
 if __name__ == "__main__":
