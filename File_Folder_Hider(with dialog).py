@@ -209,10 +209,8 @@ def dialog_box_hide():
     txt_box_h.bind("<Return>", lambda x: get_txt_input(text=text_h, opr='hide'))
 
     #--BUTTONS SECTION--
-    button_h = Button(text="Hide", font=("Calibri",12), bg="darkgray", command= lambda x: get_txt_input(text=text_h, opr='hide'))
+    button_h = Button(text="Hide", font=("Calibri",12), bg="darkgray", command= lambda : get_txt_input(text=text_h, opr='hide'))
     button_h.config(width = 8, height = 1, relief="groove", state="disabled")
-    button_h.bind("<Enter>", lambda x: [button_h.config(relief="raised")])
-    button_h.bind("<Leave>", lambda x: [button_h.config(relief="groove")])
 
     button_fi = Button(text="Hide a File", font=("Calibri",15), bg="darkgray", command=open_file)
     button_fi.config(width = 11, height = 1, relief="groove")
@@ -506,10 +504,10 @@ def dialog_box_recover_mas_pass(recovery_code):
     #--ENTRY BOX SECTION--
     txt_box_3 = Entry(win_pass_3, textvariable=password_3, width = 60, justify="center")
     password_3.trace_add("write", lambda x,y,z: txt_box_change(button=button_ok, text=password_3))
-    txt_box_3.bind("<Return>", lambda x: get_txt_input(text=password_3, opr='recover_pass'))
+    txt_box_3.bind("<Return>", lambda x: get_txt_input(text=password_3, opr='recover_pass', recovery_code=recovery_code))
 
     #--BUTTONS SECTION--
-    button_ok = Button(text="OK", font=("Calibri", 13), bg="darkgray", command=lambda : get_txt_input(text=password_3, opr='recover_pass', recovery_code = recovery_code))
+    button_ok = Button(text="OK", font=("Calibri", 13), bg="darkgray", command=lambda : get_txt_input(text=password_3, opr='recover_pass', recovery_code=recovery_code))
     button_ok.config(width = 9, height = 1, relief="groove", state="disabled")
     button_ok.bind("<Enter>", lambda x: [button_ok.config(relief="raised")])
     button_ok.bind("<Leave>", lambda x: [button_ok.config(relief="groove")])
