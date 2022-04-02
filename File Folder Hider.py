@@ -11,6 +11,7 @@ from random import randint
 from stat import FILE_ATTRIBUTE_HIDDEN as H
 from tkinter import Button, Entry, Label, StringVar, TclError, Tk, filedialog
 from tkinter.messagebox import askquestion, showerror, showinfo, showwarning
+from idlelib.tooltip import Hovertip
 from win32api import GetFileAttributes
 
 # Current date
@@ -31,8 +32,11 @@ class Error:
     dialog_box_hide_exit_er = "You exited the dialog box. Please try again."
     invalid_email_format_er = "The email you have entered is of invalid format. Please try again."
 
-
 class Email:
+    """
+    Send a Master Password Recovery Code through Gmail to the user email address
+    provided while creating/changing the Master Password.
+    """
     def __init__(self):
         self.recovery_code = randint(100000,999999)
         self.sender = "filefolderhider@gmail.com"
@@ -83,22 +87,12 @@ class Email:
 
 
 def recov_code():
-    try:
-        with open(pass_file, "rb") as file:
-            text = file.readlines()
+    email = Email()
+    return email.passw_recovery_email()
 
-        user_email = base64.b64decode(text[2]).decode("utf-8")
-
-    except IndexError:
-        user_email = None
-
-    if not user_email:
-        return showerror(title="No Email Found",
-                         message="You have not provided your email address.\nTo access the Master Password Recovery feature, please enter your email address while creating/changing the Master Password."), txt_box_2.focus_force()
-
-    else:
-        email = Email()
-        return email.passw_recovery_email()
+def no_email_info():
+    return showerror(title="No Email Found",
+                     message="You have not provided your email address.\nTo access the Master Password Recovery feature, please enter your email address while creating/changing the Master Password."), txt_box_2.focus_force()
 
 
 def center(win, win_width, win_height):
@@ -430,7 +424,6 @@ def dialog_box_mas_pass():
 
     #--WIN_PASS_2 SECTION--
     win_pass_2 = Tk()
-    win_pass_2.attributes("-topmost", True)
     win_pass_2.resizable(width=False, height=False)
     win_pass_2.eval('tk::PlaceWindow . center')
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_2, 400, 175)
@@ -438,8 +431,19 @@ def dialog_box_mas_pass():
     win_pass_2.title("Master Password Required")
     win_pass_2.configure(bg="gray")
 
+    try:
+        with open(pass_file, "rb") as file:
+            text = file.readlines()
+
+        user_email = base64.b64decode(text[2]).decode("utf-8")
+
+    except (FileNotFoundError, IndexError):
+        user_email = None
+
     #--LABELS SECTION--
     label = Label(win_pass_2, text="Please enter the Master Password in order\nto access File/Folder Hider:", font=("Calibri", 14), width = 40, bg="darkgray")
+    label_info = Label(win_pass_2, text="?", font=("Calibri",12), width = 3, height = 1, relief="groove", bg="gray")
+    Hovertip(label_info, text="You have not provided your email address.\nTo access the Master Password Recovery feature,\nplease enter your email address while creating/\nchanging the Master Password.", hover_delay=200)
 
     #--STRINGVAR SECTION--
     password_2 = StringVar(win_pass_2)
@@ -457,17 +461,29 @@ def dialog_box_mas_pass():
     button_cancel.bind("<Enter>", lambda x: [button_cancel.config(relief="raised")])
     button_cancel.bind("<Leave>", lambda x: [button_cancel.config(relief="groove")])
 
+
     button_recov_passw = Button(text="Forgot Password?", font=("Calibri", 9), command=recov_code)
-    button_recov_passw.config(width = 17, height = 1, relief = "groove", bg="darkgray")
-    button_recov_passw.bind("<Enter>", lambda x: [button_recov_passw.config(relief="sunken")])
-    button_recov_passw.bind("<Leave>", lambda x: [button_recov_passw.config(relief="groove")])
+    button_recov_passw.config(width = 17, height = 1, relief = "groove", bg="darkgray", state="disabled")
+
+    if user_email:
+        button_recov_passw.config(state="normal")
+        button_recov_passw.bind("<Enter>", lambda x: [button_recov_passw.config(relief="raised")])
+        button_recov_passw.bind("<Leave>", lambda x: [button_recov_passw.config(relief="groove")])
+
+    else:
+        button_recov_passw.unbind("<Enter>")
+        button_recov_passw.unbind("<Leave>")
+        button_recov_passw.config(state="disabled")
 
     #--WIDGETS' PLACEMENT SECTION--
+    if not user_email:
+        label_info.grid(row = 0, column = 2, padx=(0,5), pady = 5, sticky="NE")
+    else: label_info.grid_forget()
     button_recov_passw.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="NE")
-    label.grid(row = 1, column = 0, columnspan=2)
-    txt_box_2.grid(row = 2, column = 0, columnspan=2)
-    button_ok.grid(row = 3, column = 0, padx = 40, pady = (2,5), sticky="SE")
-    button_cancel.grid(row = 3, column = 1, padx = 40, pady = (2,5), sticky="SW")
+    label.grid(row = 1, column = 0, columnspan=3)
+    txt_box_2.grid(row = 2, column = 0, columnspan=3)
+    button_ok.grid(row = 3, column = 1, pady = (2,5), sticky="SW")
+    button_cancel.grid(row = 3, column = 1, columnspan=2, padx = 80, pady = (2,5), sticky='SE')
 
     #--GRID CONFIGURE SECTION--
     win_pass_2.grid_rowconfigure(0, weight=1)
@@ -475,7 +491,7 @@ def dialog_box_mas_pass():
     win_pass_2.grid_rowconfigure(2, weight=2)
 
     win_pass_2.grid_columnconfigure(0, weight=1)
-    win_pass_2.grid_columnconfigure(1, weight=1)
+    win_pass_2.grid_columnconfigure(1, weight=2)
 
     txt_box_2.focus_force()
     win_pass_2.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_pass_2, dialog_box_mas_pass))
