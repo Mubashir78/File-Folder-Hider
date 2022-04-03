@@ -120,7 +120,7 @@ def dialog_box_menu():
 
     #--LABELS SECTION--
     label = Label(text="============== Main Menu ==============", font=("Calibri", 19, "bold"), bg="gray")
-    intro_txt = StringVar(win, "Welcome To File/Folder Hider!\nHere you can hide and unhide your files and/or folders.\n\nPlease press one of the buttons below\nto use the File/Folder Hider:")
+    intro_txt = StringVar(win, "Welcome To File Folder Hider!\nHere you can hide and unhide your files and/or folders.\n\nPlease press one of the buttons below\nto use the File Folder Hider:")
     label_2 = Label(textvariable=intro_txt, font=("Calibri", 14), width=50, bg="darkgray")
     
     #--BUTTONS SECTION--
@@ -441,7 +441,7 @@ def dialog_box_mas_pass():
         user_email = None
 
     #--LABELS SECTION--
-    label = Label(win_pass_2, text="Please enter the Master Password in order\nto access File/Folder Hider:", font=("Calibri", 14), width = 40, bg="darkgray")
+    label = Label(win_pass_2, text="Please enter the Master Password in order\nto access File Folder Hider:", font=("Calibri", 14), width = 40, bg="darkgray")
     label_info = Label(win_pass_2, text="?", font=("Calibri",12), width = 3, height = 1, relief="groove", bg="gray")
     Hovertip(label_info, text="You have not provided your email address.\nTo access the Master Password Recovery feature,\nplease enter your email address while creating/\nchanging the Master Password.", hover_delay=200)
 
