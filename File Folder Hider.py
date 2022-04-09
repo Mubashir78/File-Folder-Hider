@@ -58,8 +58,6 @@ class Email:
         Mubashir78.
         https://www.github.com/Mubashir78"""
 
-
-
     def passw_recovery_email(self):
         conf = askquestion(title="Master Password Recovery",
                            message=f"An email will be sent to {self.receiver} containing the recovery code for changing the Master Password.\n\nDo you wish to continue?")
@@ -110,7 +108,6 @@ def dialog_box_menu():
 
     # --WIN SECTION--
     win = Tk()
-    win.attributes("-topmost", True)
     win.resizable(width=False, height=False)
     win.eval('tk::PlaceWindow . center')
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win, WIDTH, HEIGHT)
@@ -183,7 +180,6 @@ def dialog_box_hide():
 
     #--WIN_H SECTION--
     win_h = Tk()
-    win_h.attributes("-topmost", True)
     win_h.resizable(width=False, height=False)
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_h, WIDTH, HEIGHT)
     win_h.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
@@ -257,7 +253,6 @@ def dialog_box_unhide():
 
     #--WIN_UH SECTION--
     win_uh = Tk()
-    win_uh.attributes("-topmost", True)
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_uh, WIDTH, HEIGHT)
     win_uh.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
     win_uh.resizable(width=False, height=False)
@@ -318,12 +313,11 @@ def dialog_box_unhide():
     win_uh.mainloop()
 
 
-def create_pass_dialog_box():
-    global win_pass, mas_pass, entry_box_pass, entry_box_conf_pass, entry_box_email
+def create_pass_dialog_box(recovery_code=None):
+    global win_pass, mas_pass, entry_box_cur_pass, entry_box_pass, entry_box_conf_pass, entry_box_email
 
     #--WIN_PASS SECTION--
     win_pass = Tk()
-    win_pass.attributes("-topmost", True)
     win_pass.resizable(width=False, height=False)
     win_pass.eval('tk::PlaceWindow . center')
     win_pass.title("Create Password")
@@ -331,18 +325,22 @@ def create_pass_dialog_box():
 
     #--LABELS SECTION--
     label = Label(text="Enter a strong password (Email is optional):", font=("Calibri", 16, "bold"), width=50, bg="darkgray", fg="black")
+    label_cur_pass = Label(text="Current Password:", font=("Calibri", 12, "bold"), bg="darkgray")
     label_pass = Label(text="Password:", font=("Calibri", 15, "bold"), bg="darkgray")
     label_conf_pass = Label(text="Confirm Password:", font=("Calibri", 12, "bold"), bg="darkgray")
     label_email = Label(text="Email (For Password Recovery):", font=("Calibri", 9, "bold"), bg="darkgray")
 
     #--STRINGVAR SECTION--
+    cur_mas_pass = StringVar(win_pass)
     mas_pass = StringVar(win_pass)
     conf_mas_pass = StringVar(win_pass)
     email = StringVar(win_pass)
 
     #--ENTRY BOXES SECTION--
+    entry_box_cur_pass = Entry(win_pass, textvariable=cur_mas_pass, width=55, justify="center")
+    entry_box_cur_pass.bind("<Return>", lambda x: entry_box_pass.focus_force())
+
     entry_box_pass = Entry(win_pass, textvariable=mas_pass, width=55, justify="center")
-    mas_pass.trace_add("write", lambda x,y,z: txt_box_change(button=button, text=mas_pass))
     entry_box_pass.bind("<Return>", lambda x: entry_box_conf_pass.focus_force())
 
     entry_box_conf_pass = Entry(win_pass, textvariable=conf_mas_pass, width=55, justify="center")
@@ -351,18 +349,22 @@ def create_pass_dialog_box():
 
     entry_box_email = Entry(win_pass, textvariable=email, width=55, justify="center")
     email.trace_add("write", lambda x,y,z: txt_box_change(button=button, text=email))
-    entry_box_email.bind("<Return>", lambda x: [store_pass_email(mas_pass, conf_mas_pass, email)])
+
+    if not recovery_code:
+        entry_box_email.bind("<Return>", lambda x: [store_pass_email(mas_pass, conf_mas_pass, email, cur_mas_pass)])
+    else:
+        entry_box_email.bind("<Return>", lambda x: [store_pass_email(mas_pass, conf_mas_pass, email, recov_code=recovery_code)])
 
     disabled = ("<Control-x>", "<Control-c>", "<Control-v>", "<Button-3>")
     for i in disabled:
         entry_box_conf_pass.bind(i, lambda x: "break") # Binds multiple key presses to function 'break', so that copy-pasting is disabled while password confirmation entry box is active
 
     #--BUTTONS SECTION--
-    button = Button(text="OK", font=("Calibri", 16), command= lambda: [store_pass_email(mas_pass, conf_mas_pass, email)])
+    button = Button(text="OK", font=("Calibri", 14), command= lambda: [store_pass_email(mas_pass, conf_mas_pass, email)])
     button.config(width = 10, height = 1, relief="groove", bg="darkgray", state="disabled")
 
     button_exit = Button(text="Exit", font=("Calibri", 14), command=lambda :[exit_dialog_box(win_pass, create_pass_dialog_box)])
-    button_exit.config(width = 6, height = 1, relief="groove", bg="darkgray")
+    button_exit.config(width = 5, height = 1, relief="groove", bg="darkgray")
     button_exit.bind("<Enter>", lambda x: [button_exit.config(relief="sunken")])
     button_exit.bind("<Leave>", lambda x: [button_exit.config(relief="groove")])
 
@@ -372,36 +374,39 @@ def create_pass_dialog_box():
     button_exit_menu.bind("<Leave>", lambda x: [button_exit_menu.config(relief="groove")])
 
     #--WIDGETS' PLACEMENT SECTION--
-    if isfile(pass_file):
+    WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 400)
+    win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
+    button_exit.grid(row = 0, column = 1, padx = 5, pady = (5,16), sticky="NE")
+    button_exit_menu.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="SE")
+    label.grid(row = 1, column = 0, columnspan=2)
+    label_cur_pass.grid(row = 2, column = 0, ipadx=10, ipady=5, padx = 5)
+    label_pass.grid(row = 3, column = 0, ipadx=30, ipady=5, padx = 5)
+    label_conf_pass.grid(row = 4, column = 0, ipadx=10, ipady=5, padx = 5)
+    label_email.grid(row = 5, column = 0, ipadx=5, ipady=5, padx = 5)
+    entry_box_cur_pass.grid(row = 2, column = 1, padx =5)
+    entry_box_pass.grid(row = 3, column = 1, padx = 5)
+    entry_box_conf_pass.grid(row = 4, column = 1, padx = 5)
+    entry_box_email.grid(row = 5, column = 1, padx = 5)
+    button.grid(row = 6, column = 0, pady = (2,5), columnspan=2)
+
+    entry_box_cur_pass.focus_force()
+
+    if recovery_code:
         WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 350)
         win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
-        button_exit.config(font=("Calibri", 14), width = 5)
-        label.grid(row = 2, column = 0, columnspan=2)
-        label_pass.grid(row = 3, column = 0, ipadx=30, ipady=5, padx = 5)
-        label_conf_pass.grid(row = 4, column = 0, ipadx=10, ipady=5, padx = 5)
-        label_email.grid(row = 5, column = 0, ipadx=5, ipady=5, padx = 5)
-        entry_box_pass.grid(row = 3, column = 1, padx = 5)
-        entry_box_conf_pass.grid(row = 4, column = 1, padx = 5)
-        entry_box_email.grid(row = 5, column = 1, padx = 5)
-        button.grid(row = 6, column = 0, pady = (2,5), columnspan=2)
-        button_exit.grid(row = 0, column = 1, padx = 5, pady = (5,18), sticky="NE")
-        button_exit_menu.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="SE")
 
-    else:
+        button_exit.config(font=("Calibri", 14))
+        label_cur_pass.grid_forget(), entry_box_cur_pass.grid_forget()
+        entry_box_pass.focus_force()
+
+    elif not (isfile(pass_file) or file_size(pass_file)):
         WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 300)
         win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
-        label.grid(row = 1, column = 0, ipady=3, columnspan=2, sticky="N")
-        label_pass.grid(row = 2, column = 0, ipadx=30, ipady=5, padx = 5)
-        label_conf_pass.grid(row = 3, column = 0, ipadx=10, ipady=5, padx = 5)
-        label_email.grid(row = 4, column = 0, ipadx=5, ipady=5, padx = 5)
-        entry_box_pass.grid(row = 2, column = 1, padx = 5)
-        entry_box_conf_pass.grid(row = 3, column = 1, padx = 5)
-        entry_box_email.grid(row = 4, column = 1, padx = 5)
-        button.grid(row = 5, column = 0, columnspan=2)
-        button_exit.grid(row = 0, column = 1, padx = 5, pady = 5, sticky="NE")
-        button_exit_menu.grid_forget()
 
-
+        button_exit.config(font=("Calibri", 15), width = 6)
+        label_cur_pass.grid_forget(), entry_box_cur_pass.grid_forget(), button_exit_menu.grid_forget()
+        entry_box_pass.focus_force()
+        
     #--GRID CONFIGURE SECTION--
     win_pass.grid_rowconfigure(0, weight=2)
     win_pass.grid_rowconfigure(1, weight=1)
@@ -414,7 +419,6 @@ def create_pass_dialog_box():
     win_pass.grid_columnconfigure(0, weight=1)
     win_pass.grid_columnconfigure(1, weight=4)
 
-    entry_box_pass.focus_force()
     win_pass.protocol("WM_DELETE_WINDOW", lambda : exit_dialog_box(win_pass, create_pass_dialog_box))
     win_pass.mainloop()
 
@@ -503,7 +507,6 @@ def dialog_box_recover_mas_pass(recovery_code):
 
     #--WIN_PASS_3 SECTION--
     win_pass_3 = Tk()
-    win_pass_3.attributes("-topmost", True)
     win_pass_3.resizable(width=False, height=False)
     win_pass_3.eval('tk::PlaceWindow . center')
     WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass_3, 400, 230)
@@ -592,7 +595,7 @@ def get_txt_input(text, opr, recovery_code=None, *args):
         if input_recover_pass == str(recovery_code):
             showinfo(title="Recovery Code Matched",
                      message="Authentication successful.\nYou can now proceed to change your Master Password.")
-            return win_pass_3.destroy(), create_pass_dialog_box()
+            return win_pass_3.destroy(), create_pass_dialog_box(recovery_code)
 
         else:
             txt_box_3.delete(0, "end")
@@ -662,7 +665,10 @@ def create_passw():
         pass
     return sys_hide(pass_file)
 
-# Following 3 Functions are for deleting their respective Entry text fields
+# Following 4 Functions are for deleting their respective Entry text fields
+
+def delete_entry_cur_pass():
+    return entry_box_cur_pass.delete(0, "end")
 
 def delete_entry_pass():
     return entry_box_pass.delete(0, "end")
@@ -735,12 +741,17 @@ def delete_email(lines):
 # the first place, or when Master Password has already been created
 
 
-def check_password_only(password, orig_password, orig_email):
-    if not (orig_password or orig_email):
-            write_password(password)
-            logging("Create Master Password")
-            showinfo("Success", "Master Password has been created successfully.\n\nPress OK to proceed.")
-            return win_pass.destroy(), dialog_box_menu()
+def check_password_only(password, orig_password, orig_email, cur_pass=None):
+    if cur_pass == "" and orig_password:
+        delete_entry_cur_pass()
+        showerror("Current Master Password Required", "Please enter the Master Password currently set before setting the New Master Password")
+        return entry_box_cur_pass.focus_force()
+
+    elif not (orig_password or orig_email):
+        write_password(password)
+        logging("Create Master Password")
+        showinfo("Success", "Master Password has been created successfully.\n\nPress OK to proceed.")
+        return win_pass.destroy(), dialog_box_menu()
 
     elif (orig_password and orig_email) and orig_password != password:
         write_password_and_email(password, orig_email)
@@ -753,7 +764,7 @@ def check_password_only(password, orig_password, orig_email):
         logging("Change Master Password")
         showinfo("Success", "Master Password has been changed successfully.\n\nPress OK to proceed.")
         return win_pass.destroy(), dialog_box_menu()
-
+    
     else:
         delete_entry_pass(), delete_entry_conf_pass()
         showerror("Master Password Already Exists", "The Master Password you have entered is already in use. Please enter a new Master Password.")
@@ -815,7 +826,7 @@ def check_email_only(orig_password, email, orig_email):
             return entry_box_email.focus_force()
 
 
-def check_both_passw_and_email(password, orig_password, email, orig_email):
+def check_both_passw_and_email(password, orig_password, email, orig_email, cur_pass=None):
     if not orig_password:
         if check_email_format(regex, email):
             write_password_and_email(password, email)
@@ -836,16 +847,26 @@ def check_both_passw_and_email(password, orig_password, email, orig_email):
                 showinfo("Success", "Email has been deleted successfully.")
                 return win_pass.destroy(), dialog_box_menu()
 
-            else:
+            elif password != orig_password:
                 write_password(password)
                 logging("Change Master Password & Delete Email")
                 showinfo("Success", "Master Password has been changed and email has been deleted successfully.")
                 return win_pass.destroy(), dialog_box_menu()
 
+            else:
+                delete_entry_pass(), delete_entry_conf_pass()
+                showerror("Master Password Already Exists", "The Master Password you have entered is already in use. Please enter a new Master Password.")
+                return entry_box_pass.focus_force()
+
         else:
             delete_entry_email()
             showerror("No Email Found", "No email is found to be deleted.")
             return entry_box_email.focus_force()
+
+    elif cur_pass == "" and orig_password:
+        delete_entry_cur_pass()
+        showerror("Current Master Password Required", "Please enter the Master Password currently set before setting the New Master Password")
+        return entry_box_cur_pass.focus_force()
 
     elif password != orig_password:
         if check_email_format(regex, email):
@@ -875,8 +896,11 @@ def check_both_passw_and_email(password, orig_password, email, orig_email):
 # for storing Master Password and User Email
 
 
-def store_pass_email(password, conf_pass, email):
+def store_pass_email(password, conf_pass, email, cur_pass=None, recov_code=None):
     global regex, lines
+
+    if not recov_code:
+        cur_pass = cur_pass.get()
     password = password.get()
     conf_pass = conf_pass.get()
     user_email = email.get()
@@ -894,7 +918,12 @@ def store_pass_email(password, conf_pass, email):
 
     regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
-    if password != conf_pass and not user_email:
+    if cur_pass and cur_pass != checking_password:
+        delete_entry_cur_pass()
+        showerror("Invalid Current Master Password", "The current Master Password does not match with the one you have entered. Please try again.")
+        return entry_box_cur_pass.focus_force()
+
+    elif password != conf_pass and not user_email:
         delete_entry_pass(), delete_entry_conf_pass()
         showerror("Non-Matching Passwords", "The passwords you have entered do not match. Please try again.")
         return entry_box_pass.focus_force()
@@ -910,13 +939,21 @@ def store_pass_email(password, conf_pass, email):
         return entry_box_pass.focus_force()
 
     elif password and user_email:
-        check_both_passw_and_email(password, checking_password, user_email, checking_email)
+        if recov_code:
+            check_both_passw_and_email(password, checking_password, user_email, checking_email)
+
+        else:
+            check_both_passw_and_email(password, checking_password, user_email, checking_email, cur_pass)
 
     elif not password:
         check_email_only(checking_password, user_email, checking_email)
 
     elif not user_email:
-        check_password_only(password, checking_password, checking_email)
+        if recov_code:
+            check_password_only(password, checking_password, checking_email)
+        
+        else:
+            check_password_only(password, checking_password, checking_email, cur_pass)
 
 
 def change_mas_pass():
@@ -1112,7 +1149,7 @@ def exit_dialog_box(win, dialog_box):
 if __name__ == "__main__":
     if not isfile(log_file):
         create_log()
-    if not isfile(pass_file) or file_size(pass_file) == 0:
+    if not isfile(pass_file) or not file_size(pass_file):
         create_pass()
 
     else: dialog_box_mas_pass()
