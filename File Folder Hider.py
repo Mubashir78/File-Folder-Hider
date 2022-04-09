@@ -5,7 +5,7 @@ import re, os, sys, base64, yagmail
 from datetime import datetime
 from os import lstat
 from os.path import getsize as file_size
-from os.path import isdir, isfile, join
+from os.path import isdir, isfile, exists, join
 from pathlib import Path
 from random import randint
 from stat import FILE_ATTRIBUTE_HIDDEN as H
@@ -195,7 +195,7 @@ def dialog_box_hide():
     #--ENTRY BOX SECTION--
     text_h = StringVar(win_h)
     txt_box_h = Entry(win_h, textvariable=text_h, width = 60, justify="center")
-    text_h.trace_add("write", lambda x,y,z: txt_box_change(button=button_h, text=text_h))
+    text_h.trace_add("write", lambda x,y,z: txt_box_change_2(button=button_h, text=text_h))
     txt_box_h.bind("<Return>", lambda x: get_txt_input(text=text_h, opr='hide'))
 
     #--BUTTONS SECTION--
@@ -267,7 +267,7 @@ def dialog_box_unhide():
     #--ENTRY BOX SECTION--
     text_uh = StringVar(win_uh)
     txt_box_uh = Entry(win_uh, textvariable=text_uh, width = 70, justify="center")
-    text_uh.trace_add("write", lambda x,y,z: txt_box_change(button=button_uh, text=text_uh))
+    text_uh.trace_add("write", lambda x,y,z: txt_box_change_2(button=button_uh, text=text_uh))
     txt_box_uh.bind("<Return>", lambda x: get_txt_input(text=text_uh, opr='unhide'))
 
     #--BUTTONS SECTION--
@@ -399,7 +399,7 @@ def create_pass_dialog_box(recovery_code=None):
         label_cur_pass.grid_forget(), entry_box_cur_pass.grid_forget()
         entry_box_pass.focus_force()
 
-    elif not (isfile(pass_file) or file_size(pass_file)):
+    elif not (isfile(pass_file) and file_size(pass_file)):
         WIN_WIDTH, WIN_HEIGHT, X, Y = center(win_pass, WIDTH, 300)
         win_pass.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}+{int(X)}+{int(Y)}")
 
@@ -563,14 +563,11 @@ def dialog_box_recover_mas_pass(recovery_code):
 def get_txt_input(text, opr, recovery_code=None, *args):
     # Takes a StringVar and operation to get the data stored in it and
     # return the function according to the operation, else show error
-    global fi_fo_path
     if opr == 'hide':
-        fi_fo_path = text.get()
-        return hide_fi_fo(fi_fo_path)
+        return hide_fi_fo(text.get())
 
     elif opr == 'unhide':
-        fi_fo_path = text.get()
-        return unhide_fi_fo(fi_fo_path)
+        return unhide_fi_fo(text.get())
 
     elif opr == 'pass':
         password = text.get()
@@ -611,6 +608,18 @@ def txt_box_change(button, text):
         button.config(state="normal")
         button.bind("<Enter>", lambda x: [button.config(relief="raised")])
         button.bind("<Leave>", lambda x: [button.config(relief="groove")])
+
+    else:
+        button.unbind("<Enter>")
+        button.unbind("<Leave>")
+        button.config(state="disabled")
+
+
+def txt_box_change_2(button, text):
+    # Changes "Hide" button's state in particular from disabled
+    # to enabled and vice-versa upon entry of a valid path
+    if exists(text.get()):
+        txt_box_change(button, text)
 
     else:
         button.unbind("<Enter>")
@@ -1079,12 +1088,6 @@ def hide_fi_fo(path):
 
         else: return hide("Folder", path)
 
-    else:
-        txt_box_h.delete(0, "end")
-        showerror(title="Invalid Path",
-                  message=Error.file_path_er)
-        return txt_box_h.focus_force()
-
 
 def hide(file_folder, fi_fo_path):
     sys_hide_r_o(fi_fo_path)
@@ -1112,12 +1115,6 @@ def unhide_fi_fo(path):
         else:
             return showerror(title="Folder is Not Hidden",
                       message="The folder you are trying to unhide is already visible.")
-
-    else:
-        txt_box_uh.delete(0, "end")
-        showerror(title="Invalid Path",
-                  message=Error.file_path_er)
-        return txt_box_uh.focus_force()
 
 
 def unhide(file_type, path):
