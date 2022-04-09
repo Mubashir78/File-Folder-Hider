@@ -5,7 +5,7 @@
  To hide and unhide local files and folders atleast from **File Explorer**.
 
  # How To Use It
- If you have Python and any IDE like VSCode installed, then you can copy the whole *File Folder Hider.py* script and paste it into any empty .py file and you may name it the same, **or** you can extract *File Folder Hider.rar* to a suitable path/directory and create a shortcut to *File Folder Hider.exe* present inside the *File Folder Hider* folder.
+ If you have Python and any IDE like VSCode installed, then you can copy the whole **File Folder Hider.py** script and paste it into any empty .py file and you may name it the same, ***OR*** you can extract **File Folder Hider.rar** to a suitable path/directory and create a shortcut to **File Folder Hider.exe** present inside the **File Folder Hider** folder.
  
  The reason for not having a single executable anymore is that having the imported libraries already extracted boosts the startup time of the program, meaning it will open much quicker as compared to a single executable.
  
