@@ -1,7 +1,7 @@
 # Programmed by: Mubashir Ahmed OR known as Mubashir78 on GitHub
 # https://www.github.com/Mubashir78
 
-import re, os, sys, base64, yagmail
+import re, os, sys, subprocess, base64, yagmail
 from datetime import datetime
 from os import lstat
 from os.path import getsize as file_size
@@ -21,9 +21,6 @@ today = datetime.today().strftime("%d-%b-%Y")
 cur_t = datetime.today().strftime("%I:%M %p")
 
 WIDTH, HEIGHT = 500, 300
-
-# Makes sure that the files below are created in the same directory as the script
-log_file, pass_file = Path(__file__).with_name('log.txt'), Path(__file__).with_name('passw.pass')
 
 fi_fo_path = txt_input = conf_exit = None
 
@@ -670,9 +667,15 @@ def create_pass():
 
 
 def create_passw():
-    with open(pass_file, "w") as _:
-        pass
-    return sys_hide(pass_file)
+    global pass_file
+    pass_file = Path(__file__).with_name(f"{Cur_SID}.pass")
+
+    if not (isfile(pass_file) and file_size(pass_file)):
+        with open(pass_file, "w") as _:
+            pass
+
+        return sys_hide(pass_file), create_pass()
+
 
 # Following 4 Functions are for deleting their respective Entry text fields
 
@@ -1014,9 +1017,14 @@ def logging(opr, file_folder=None, fi_fo_path=None):
 
 
 def create_log():
-    with open(log_file, "w") as _:
-        pass
-    return sys_hide(log_file)
+    global log_file
+    log_file = Path(__file__).with_name(f"{Cur_SID}.txt")
+    
+    if not isfile(log_file):
+        with open(log_file, "w") as _:
+            pass
+
+        return sys_hide(log_file)
 
 
 def show_log():
@@ -1144,14 +1152,10 @@ def exit_dialog_box(win, dialog_box):
 
 
 if __name__ == "__main__":
-    if not isfile(log_file):
-        create_log()
-    if not isfile(pass_file) or not file_size(pass_file):
-        create_pass()
-
-    else: dialog_box_mas_pass()
-
-dialog_box_menu()
+    Cur_SID = subprocess.check_output("wmic useraccount where name='%username%' get sid", shell=True).decode().split("\n")[1].strip()
+    create_log(), create_passw()
+    dialog_box_mas_pass()
+    dialog_box_menu()
 
 # Programmed by: Mubashir Ahmed OR known as Mubashir78 on GitHub
 # https://www.github.com/Mubashir78
